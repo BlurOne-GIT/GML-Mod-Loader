@@ -28,5 +28,29 @@ foreach(string folder in Directory.GetDirectories(modFolder))
     if (modConfig["enabled"] == "false")
         continue;
 
-    Console.WriteLine($"Loading mod {modConfig["name"]}");    
+    Console.WriteLine($"Loading mod {modConfig["name"]}");
+    
+    if (Directory.Exists($"{folder}/Code"))
+    {
+        Console.WriteLine("Loading code...");
+        foreach (string script in Directory.GetFiles($"{folder}/scripts").Where(x => x.EndsWith(".gml")))
+        {
+            Console.WriteLine($"Loading script {script}");
+            ReplaceCode(script);
+        }
+    }
+}
+
+void ReplaceCode(string codePath)
+{
+    var codeName = Path.GetFileNameWithoutExtension(codePath);
+    var codeToReplace = gameData.Code.First(x => x.Name.Content == codeName);
+    if (codeToReplace != null)
+    {
+        Console.WriteLine($"Replacing code {codeName}");
+        codeToReplace.ReplaceGML(File.ReadAllText(codePath), gameData);
+        return;
+    }
+
+    var code = new Gml
 }
