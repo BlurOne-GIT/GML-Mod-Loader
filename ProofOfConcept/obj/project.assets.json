@@ -748,34 +748,37 @@
   },
   "projectFileDependencyGroups": {
     "net7.0": [
-      "Microsoft.Extensions.Configuration.Ini >= 7.0.0",
+      "Microsoft.Extensions.Configuration.Ini >= *",
       "UndertaleModLib >= 1.0.0"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\47572264\\.nuget\\packages\\": {},
-    "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
+    "C:\\Users\\bluro\\.nuget\\packages\\": {},
+    "A:\\Programs\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\47572264\\Documents\\GitHub\\GML-Mod-Loader\\ProofOfConcept\\ProofOfConcept.csproj",
+      "projectUniqueName": "A:\\Productivity\\Coding\\CS\\GML-Mod-Loader\\ProofOfConcept\\ProofOfConcept.csproj",
       "projectName": "ProofOfConcept",
-      "projectPath": "C:\\Users\\47572264\\Documents\\GitHub\\GML-Mod-Loader\\ProofOfConcept\\ProofOfConcept.csproj",
-      "packagesPath": "C:\\Users\\47572264\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\47572264\\Documents\\GitHub\\GML-Mod-Loader\\ProofOfConcept\\obj\\",
+      "projectPath": "A:\\Productivity\\Coding\\CS\\GML-Mod-Loader\\ProofOfConcept\\ProofOfConcept.csproj",
+      "packagesPath": "C:\\Users\\bluro\\.nuget\\packages\\",
+      "outputPath": "A:\\Productivity\\Coding\\CS\\GML-Mod-Loader\\ProofOfConcept\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
-        "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        "A:\\Programs\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\47572264\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\bluro\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net7.0"
       ],
       "sources": {
-        "C:\\Users\\47572264\\Documents\\GitHub\\GML-Mod-Loader\\NuGetPackages": {},
+        "A:\\Productivity\\Coding\\CS\\GML-Mod-Loader\\NuGetPackages": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -796,7 +799,7 @@
         "dependencies": {
           "Microsoft.Extensions.Configuration.Ini": {
             "target": "Package",
-            "version": "[7.0.0, )"
+            "version": "[*, )"
           },
           "UndertaleModLib": {
             "target": "Package",
@@ -819,7 +822,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.203\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.302\\RuntimeIdentifierGraph.json"
       }
     }
   }
