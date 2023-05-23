@@ -4,11 +4,13 @@
 
 using Microsoft.Extensions.Configuration;
 using UndertaleModLib;
-using UndertaleModLib.Decompiler;
+using UndertaleModLib.Models;
+using UndertaleModLib.Compiler;
 
 string gameDataPath = args[0];
 string modFolder = args[1];
 string modsConfig = $"{modFolder}/mods.ini";
+Dictionary<string, int> moddedCodes = new Dictionary<string, int>();
 
 UndertaleData gameData;
 
@@ -22,35 +24,64 @@ try
     return;
 }
 
-foreach(string folder in Directory.GetDirectories(modFolder))
+foreach (string folder in Directory.GetDirectories(modFolder))
 {
     var modConfig = new ConfigurationBuilder().AddIniFile($"{folder}/mod.ini").Build().GetSection("Loader");
+
     if (modConfig["enabled"] == "false")
         continue;
 
     Console.WriteLine($"Loading mod {modConfig["name"]}");
     
+    if (Directory.Exists($"{folder}/Sprites"))
+    {
+        Console.WriteLine("Loading sprites...");
+        foreach (string sprite in Directory.GetFiles($"{folder}/sprites").Where(x => !x.EndsWith(".ini")))
+        {
+            Console.WriteLine($"Loading sprite {sprite}");
+            ReplaceSprite(sprite, Convert.ToInt32(modConfig["priority"]));
+        }
+    }
+
     if (Directory.Exists($"{folder}/Code"))
     {
         Console.WriteLine("Loading code...");
-        foreach (string script in Directory.GetFiles($"{folder}/scripts").Where(x => x.EndsWith(".gml")))
+        foreach (string code in Directory.GetFiles($"{folder}/scripts").Where(x => x.EndsWith(".gml")))
         {
-            Console.WriteLine($"Loading script {script}");
-            ReplaceCode(script);
+            Console.WriteLine($"Loading code {code}");
+            ReplaceCode(code, Convert.ToInt32(modConfig["priority"]));
         }
     }
 }
 
-void ReplaceCode(string codePath)
+using (var stream = new FileStream(Path.GetDirectoryName(gameDataPath) + "modded.win", FileMode.OpenOrCreate, FileAccess.ReadWrite))
+    UndertaleIO.Write(stream, gameData);
+
+void ReplaceCode(string codePath, int modPriority)
 {
-    var codeName = Path.GetFileNameWithoutExtension(codePath);
-    var codeToReplace = gameData.Code.First(x => x.Name.Content == codeName);
-    if (codeToReplace != null)
+    string codeName = Path.GetFileNameWithoutExtension(codePath);
+
+    if (moddedCodes.ContainsKey(codeName) && moddedCodes[codeName] < modPriority)
     {
-        Console.WriteLine($"Replacing code {codeName}");
-        codeToReplace.ReplaceGML(File.ReadAllText(codePath), gameData);
+        Console.WriteLine($"Code {codeName} already replaced with a higher priority mod, pain ahead.");
         return;
     }
 
-    var code = new Gml
+    moddedCodes[codeName] = modPriority;
+
+    UndertaleCode codeToReplace = gameData.Code.First(x => x.Name.Content == codeName);
+    var fileConfig = new ConfigurationBuilder().AddIniFile($"./{codeName}.ini").Build().GetSection("ReplaceValues");
+
+    if (codeToReplace is null)
+        codeToReplace = new UndertaleCode() {
+            Name = new UndertaleString(codeName)
+        };
+
+    CompileContext context = Compiler.CompileGMLText(File.ReadAllText(codePath), gameData, codeToReplace);
+    codeToReplace.Replace(context.ResultAssembly);
+}
+
+void ReplaceSprite(string spritePath, int modPriority)
+{
+
 }
