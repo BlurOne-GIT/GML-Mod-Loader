@@ -9,10 +9,13 @@ using UndertaleModLib.Compiler;
 using System.Drawing;
 
 string gameDataPath = args[0];
-string modFolder = args[1];
-string modsConfig = $"{modFolder}/mods.ini";
+string modsFolder = args[1];
+string loaderConfigPath = $"{modsFolder}/loader.ini";
 Dictionary<string, int> moddedCodes = new Dictionary<string, int>();
 Dictionary<string, int> moddedSprites = new Dictionary<string, int>();
+Dictionary<string, int> moddedScripts = new Dictionary<string, int>();
+
+var loaderConfig = new ConfigurationBuilder().AddIniFile(loaderConfigPath).Build().GetSection("Loader");
 
 UndertaleData gameData;
 
@@ -26,13 +29,20 @@ try
     return;
 }
 
-foreach (string folder in Directory.GetDirectories(modFolder))
+foreach (string folder in Directory.GetDirectories(modsFolder))
 {
     var modConfig = new ConfigurationBuilder().AddIniFile($"{folder}/mod.ini").Build().GetSection("Loader");
 
-    if (modConfig["enabled"] == "false")
+    if (!Convert.ToBoolean(modConfig["enabled"]) || modConfig["steamAppID"] != gameData.GeneralInfo.SteamAppID.ToString())
         continue;
 
+    /* TODO: finish this line
+    if (modConfig["gameVersion"] != gameData.GeneralInfo. && !Convert.ToBool(loaderConfig["ignoreVersionMismatch"]))
+    {
+        Console.WriteLine($"Mod version does not match game version, skipping {folder}.");
+        continue;
+    }
+    */
     Console.WriteLine($"Loading mod {modConfig["name"]}");
     
     if (Directory.Exists($"{folder}/Sprites"))
@@ -55,18 +65,31 @@ foreach (string folder in Directory.GetDirectories(modFolder))
         }
     }
 
-    if (Directory.Exists($"{folder}/Scripts"))
+    if (Path.Exists($"{folder}/scripts.ini"))
     {
         Console.WriteLine("Loading scripts...");
-        foreach (string script in Directory.GetFiles($"{folder}/scripts").Where(x => x.EndsWith(".ini")))
-        {
-            Console.WriteLine($"Loading script {script}");
-            ReplaceScript(script, Convert.ToInt32(modConfig["priority"]));
-        }
+        var scriptsIni = new ConfigurationBuilder().AddIniFile($"{folder}/scripts.ini").Build();
+        foreach (var section in scriptsIni.GetChildren())
+            ReplaceScript(section["name"], section["code"], Convert.ToBoolean(section["isConstructor"]), Convert.ToInt32(modConfig["priority"]));
+    }
+
+    if (Path.Exists($"{folder}/removeGameEndScripts.ini"))
+    {
+        Console.WriteLine("Removing game end scripts...");
+        var scriptsIni = new ConfigurationBuilder().AddIniFile($"{folder}/gameEndScripts.ini").Build();
+    }
+
+    if (Path.Exists($"{folder}/addGameEndScripts.ini"))
+    {
+        Console.WriteLine("Adding game end scripts...");
+        var scriptsIni = new ConfigurationBuilder().AddIniFile($"{folder}/gameEndScripts.ini").Build();
+        // TODO
     }
 
     gameData.Scripts[0] = new UndertaleScript();
 }
+
+
 
 using (var stream = new FileStream(Path.GetDirectoryName(gameDataPath) + "modded.win", FileMode.OpenOrCreate, FileAccess.ReadWrite))
     UndertaleIO.Write(stream, gameData);
@@ -127,18 +150,15 @@ void ReplaceSprite(string spritePath, int modPriority)
     spriteToReplace.Textures[spriteIndex].Texture.ReplaceTexture(Image.FromFile(spritePath));
 }
 
-void ReplaceScript(string scriptIniPath, int modPriority)
+void ReplaceScript(string scriptName, string codeName, bool isConstructor, int modPriority)
 {
-    var fileConfig = new ConfigurationBuilder().AddIniFile(scriptIniPath).Build().GetSection("ReplaceValues");
-    string scriptName = fileConfig["name"] ?? Path.GetFileNameWithoutExtension(scriptIniPath);
-
-    if (moddedCodes.ContainsKey(scriptName) && moddedCodes[scriptName] < modPriority)
+    if (moddedScripts.ContainsKey(scriptName) && moddedScripts[scriptName] < modPriority)
     {
         Console.WriteLine($"Script {scriptName} already replaced with a higher priority mod, pain ahead.");
         return;
     }
 
-    moddedCodes[scriptName] = modPriority;
+    moddedScripts[scriptName] = modPriority;
 
     UndertaleScript scriptToReplace = gameData.Scripts.First(x => x.Name.Content == scriptName);
 
@@ -146,16 +166,16 @@ void ReplaceScript(string scriptIniPath, int modPriority)
     {
         scriptToReplace = new UndertaleScript() {
             Name = new UndertaleString(scriptName),
-            IsConstructor = Convert.ToBoolean(fileConfig["isConstructor"])
+            IsConstructor = isConstructor
         };
         gameData.Scripts.Add(scriptToReplace);
     }
 
-    UndertaleCode codeToUse = gameData.Code.First(x => x.Name.Content == fileConfig["code"]);
+    UndertaleCode codeToUse = gameData.Code.First(x => x.Name.Content == codeName);
 
     if (codeToUse is null)
     {
-        Console.WriteLine($"Code {fileConfig["code"]} not found, skipping script {scriptName}, pain head.");
+        Console.WriteLine($"Code {codeName} not found, skipping script {scriptName}, pain head.");
         return;
     }
 
