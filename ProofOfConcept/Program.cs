@@ -54,6 +54,18 @@ foreach (string folder in Directory.GetDirectories(modFolder))
             ReplaceCode(code, Convert.ToInt32(modConfig["priority"]));
         }
     }
+
+    if (Directory.Exists($"{folder}/Scripts"))
+    {
+        Console.WriteLine("Loading scripts...");
+        foreach (string script in Directory.GetFiles($"{folder}/scripts").Where(x => x.EndsWith(".ini")))
+        {
+            Console.WriteLine($"Loading script {script}");
+            ReplaceScript(script, Convert.ToInt32(modConfig["priority"]));
+        }
+    }
+
+    gameData.Scripts[0] = new UndertaleScript();
 }
 
 using (var stream = new FileStream(Path.GetDirectoryName(gameDataPath) + "modded.win", FileMode.OpenOrCreate, FileAccess.ReadWrite))
@@ -115,3 +127,37 @@ void ReplaceSprite(string spritePath, int modPriority)
     spriteToReplace.Textures[spriteIndex].Texture.ReplaceTexture(Image.FromFile(spritePath));
 }
 
+void ReplaceScript(string scriptIniPath, int modPriority)
+{
+    var fileConfig = new ConfigurationBuilder().AddIniFile(scriptIniPath).Build().GetSection("ReplaceValues");
+    string scriptName = fileConfig["name"] ?? Path.GetFileNameWithoutExtension(scriptIniPath);
+
+    if (moddedCodes.ContainsKey(scriptName) && moddedCodes[scriptName] < modPriority)
+    {
+        Console.WriteLine($"Script {scriptName} already replaced with a higher priority mod, pain ahead.");
+        return;
+    }
+
+    moddedCodes[scriptName] = modPriority;
+
+    UndertaleScript scriptToReplace = gameData.Scripts.First(x => x.Name.Content == scriptName);
+
+    if (scriptToReplace is null)
+    {
+        scriptToReplace = new UndertaleScript() {
+            Name = new UndertaleString(scriptName),
+            IsConstructor = Convert.ToBoolean(fileConfig["isConstructor"])
+        };
+        gameData.Scripts.Add(scriptToReplace);
+    }
+
+    UndertaleCode codeToUse = gameData.Code.First(x => x.Name.Content == fileConfig["code"]);
+
+    if (codeToUse is null)
+    {
+        Console.WriteLine($"Code {fileConfig["code"]} not found, skipping script {scriptName}, pain head.");
+        return;
+    }
+
+    scriptToReplace.Code = codeToUse;
+}
