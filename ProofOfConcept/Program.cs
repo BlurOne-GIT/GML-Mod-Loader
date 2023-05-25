@@ -62,7 +62,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         Console.WriteLine("Loading texture...");
         foreach (string sprite in Directory.GetFiles($"{folder}/Textures").Where(x => !x.EndsWith(".ini")))
         {
-            Console.WriteLine($"Loading sprite {sprite}");
+            Console.WriteLine($"Loading texture {sprite}");
             ReplaceTexture(sprite, Convert.ToInt32(modConfig["priority"]));
         }
     }
@@ -112,6 +112,10 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
 
 using (var stream = new FileStream(Path.GetDirectoryName(gameDataPath) + "/modded.win", FileMode.Create, FileAccess.ReadWrite))
     UndertaleIO.Write(stream, gameData);
+
+Console.WriteLine("Done");
+
+Console.ReadKey();
 #endregion
 
 #region Methods
@@ -191,8 +195,6 @@ void ReplaceTexture(string texturePath, int modPriority)
 
     UndertaleTexturePageItem textureToReplace = textureSprite.Textures[textureIndex].Texture;
 
-    textureToReplace.SourceX = 0;
-    textureToReplace.SourceY = 0;
     textureToReplace.SourceWidth = Convert.ToUInt16(imageToUse.Width);
     textureToReplace.TargetWidth = Convert.ToUInt16(imageToUse.Width);
     textureToReplace.SourceHeight = Convert.ToUInt16(imageToUse.Height);
@@ -201,6 +203,8 @@ void ReplaceTexture(string texturePath, int modPriority)
     if (Path.Exists($"./textures.ini"))
     {
         var fileConfig = new ConfigurationBuilder().AddIniFile($"./textures.ini").Build().GetSection(textureName);
+        textureToReplace.SourceX = fileConfig["sourceX"] is not null ? Convert.ToUInt16(fileConfig["sourceX"]) : textureToReplace.SourceX;
+        textureToReplace.SourceY = fileConfig["sourceY"] is not null ? Convert.ToUInt16(fileConfig["sourceY"]) : textureToReplace.SourceY;
         textureToReplace.TargetX = fileConfig["targetX"] is not null ? Convert.ToUInt16(fileConfig["targetX"]) : textureToReplace.TargetX;
         textureToReplace.TargetY = fileConfig["targetY"] is not null ? Convert.ToUInt16(fileConfig["targetY"]) : textureToReplace.TargetY;
         textureToReplace.BoundingWidth = fileConfig["boundingWidth"] is not null ? Convert.ToUInt16(fileConfig["boundingWidth"]) : textureToReplace.BoundingWidth;
