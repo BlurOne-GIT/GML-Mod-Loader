@@ -22,6 +22,7 @@ Dictionary<string, int> moddedScripts = new Dictionary<string, int>();
 List<ReplacedAssetInfo> replacedAssets = new List<ReplacedAssetInfo>();
 
 UndertaleData gameData;
+string gameFolderPath = Path.GetDirectoryName(gameDataPath)!;
 
 #endregion
 
@@ -43,6 +44,7 @@ Console.WriteLine($"Loaded game {gameData.GeneralInfo.Name.Content}");
 foreach (string folder in Directory.GetDirectories(modsFolder))
 {
     var modConfig = new ConfigurationBuilder().AddIniFile($"{folder}/mod.ini").Build().GetSection("Loader");
+    var modPriority = Convert.ToInt32(modConfig["priority"]);
 
     if (!Convert.ToBoolean(modConfig["enabled"]) || modConfig["game"] != gameData.GeneralInfo.Name.Content)
         continue;
@@ -56,6 +58,17 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
     */
     
     Console.WriteLine($"Loading mod {modConfig["name"]}");
+
+    if (Path.Exists($"{folder}/sprites.ini"))
+    {
+        Console.WriteLine("Loading sprites...");
+        var spritesIni = new ConfigurationBuilder().AddIniFile($"{folder}/sprites.ini").Build();
+        foreach (IConfigurationSection sprite in spritesIni.GetChildren())
+        {
+            Console.WriteLine($"Loading sprite {sprite.Key}");
+            ReplaceSprite(sprite, modPriority);
+        }
+    }
     
     if (Directory.Exists($"{folder}/Textures"))
     {
@@ -63,7 +76,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         foreach (string sprite in Directory.GetFiles($"{folder}/Textures").Where(x => !x.EndsWith(".ini")))
         {
             Console.WriteLine($"Loading texture {sprite}");
-            ReplaceTexture(sprite, Convert.ToInt32(modConfig["priority"]));
+            ReplaceTexture(sprite, modPriority);
         }
     }
 
@@ -73,7 +86,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         foreach (string code in Directory.GetFiles($"{folder}/Code").Where(x => x.EndsWith(".gml")))
         {
             Console.WriteLine($"Loading code {code}");
-            ReplaceCode(code, Convert.ToInt32(modConfig["priority"]));
+            ReplaceCode(code, modPriority);
         }
     }
 
@@ -84,7 +97,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         foreach (IConfigurationSection pair in scriptsIni.GetSection("Scripts").GetChildren())
         {
             Console.WriteLine($"Loading script {pair.Key}");
-            ReplaceScript(pair.Key, pair.Value!, false, Convert.ToInt32(modConfig["priority"]));
+            ReplaceScript(pair.Key, pair.Value!, false, modPriority);
         }
         foreach (IConfigurationSection pair in scriptsIni.GetSection("Constructors").GetChildren())
         {
@@ -108,9 +121,28 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         foreach (var section in scriptsIni.GetChildren())
             AddScriptToSequence(section.Key, gameData.GameEndScripts);
     }
+
+    if (Directory.Exists($"{folder}/ExternalAssets") && Path.Exists($"{folder}/ExternalAssets/externalAssets.ini"))
+    {
+        Console.WriteLine("Copying external assets...");
+        var iniFile = new ConfigurationBuilder().AddIniFile($"{folder}/ExternalAssets/externalAssets.ini").Build().GetSection("Locations");
+        foreach (string file in Directory.GetFiles($"{folder}/ExternalAssets").Where(x => !x.EndsWith("externalAssets.ini")))
+        {
+            Console.WriteLine($"Copying {file}");
+            string fileName = Path.GetFileName(file);
+            string destination = $"{gameFolderPath}/{iniFile[fileName]!}{(iniFile[fileName]!.EndsWith("/") ? "" : "/")}{fileName}";
+            if (destination.Contains("..") || destination.Contains("%"))
+            {
+                Console.WriteLine("Invalid destination, skipping");
+                continue;
+            }
+
+            CopyExternalAsset(file, destination, modPriority);
+        }
+    }
 }
 
-using (var stream = new FileStream(Path.GetDirectoryName(gameDataPath) + "/modded.win", FileMode.Create, FileAccess.ReadWrite))
+using (var stream = new FileStream($"{gameFolderPath}/modded.win", FileMode.Create, FileAccess.ReadWrite))
     UndertaleIO.Write(stream, gameData);
 
 Console.WriteLine("Done");
@@ -195,23 +227,46 @@ void ReplaceTexture(string texturePath, int modPriority)
 
     UndertaleTexturePageItem textureToReplace = textureSprite.Textures[textureIndex].Texture;
 
-    textureToReplace.SourceWidth = Convert.ToUInt16(imageToUse.Width);
-    textureToReplace.TargetWidth = Convert.ToUInt16(imageToUse.Width);
-    textureToReplace.SourceHeight = Convert.ToUInt16(imageToUse.Height);
-    textureToReplace.TargetHeight = Convert.ToUInt16(imageToUse.Height);
+    ushort width = Convert.ToUInt16(imageToUse.Width);
+    ushort height = Convert.ToUInt16(imageToUse.Height);
+
+    if (textureToReplace.SourceWidth < width || textureToReplace.SourceHeight < height)
+    {
+        Console.WriteLine($"Texture {textureName} has different size than original, creating it's own embedded texture.");
+
+        textureToReplace.SourceX = 0;
+        textureToReplace.SourceY = 0;
+        var embeddedTexture = new UndertaleEmbeddedTexture(){
+            Name = new UndertaleString($"Texture {gameData.EmbeddedTextures.Count}"),
+            TextureWidth = width,
+            TextureHeight = height,
+            Scaled = 1,
+            GeneratedMips = 0,
+            TextureData = new UndertaleEmbeddedTexture.TexData() {
+                TextureBlob = File.ReadAllBytes(texturePath)
+            }
+        };
+
+        gameData.EmbeddedTextures.Add(embeddedTexture);
+        textureToReplace.TexturePage = embeddedTexture;
+
+    }
+
+    textureToReplace.SourceWidth = width;
+    textureToReplace.TargetWidth = width;
+    textureToReplace.SourceHeight = height;
+    textureToReplace.TargetHeight = height;
 
     if (Path.Exists($"./textures.ini"))
     {
         var fileConfig = new ConfigurationBuilder().AddIniFile($"./textures.ini").Build().GetSection(textureName);
-        textureToReplace.SourceX = fileConfig["sourceX"] is not null ? Convert.ToUInt16(fileConfig["sourceX"]) : textureToReplace.SourceX;
-        textureToReplace.SourceY = fileConfig["sourceY"] is not null ? Convert.ToUInt16(fileConfig["sourceY"]) : textureToReplace.SourceY;
         textureToReplace.TargetX = fileConfig["targetX"] is not null ? Convert.ToUInt16(fileConfig["targetX"]) : textureToReplace.TargetX;
         textureToReplace.TargetY = fileConfig["targetY"] is not null ? Convert.ToUInt16(fileConfig["targetY"]) : textureToReplace.TargetY;
         textureToReplace.BoundingWidth = fileConfig["boundingWidth"] is not null ? Convert.ToUInt16(fileConfig["boundingWidth"]) : textureToReplace.BoundingWidth;
         textureToReplace.BoundingHeight = fileConfig["boundingHeight"] is not null ? Convert.ToUInt16(fileConfig["boundingHeight"]) : textureToReplace.BoundingHeight;
     }
 
-    textureSprite.Textures[textureIndex].Texture.ReplaceTexture(Image.FromFile(texturePath));
+    textureToReplace.ReplaceTexture(imageToUse);
 }
 
 void ReplaceScript(string scriptName, string codeName, bool isConstructor, int modPriority)
@@ -242,6 +297,58 @@ void ReplaceScript(string scriptName, string codeName, bool isConstructor, int m
     scriptToReplace.Code = codeToUse;
 }
 
+void ReplaceSprite(IConfigurationSection section, int modPriority)
+{
+    string spriteName = section.Key;
+
+    if (IsAssetUnavailable(typeof(UndertaleSprite), spriteName, modPriority))
+        return;
+    
+    UndertaleSprite spriteToReplace = gameData.Sprites.First(x => x.Name.Content == spriteName);
+
+    if (spriteToReplace is null)
+    {
+        Console.WriteLine($"Sprite {spriteName} not found, creating new sprite.");
+        spriteToReplace = new UndertaleSprite() {
+            Name = new UndertaleString(spriteName)
+        };
+        gameData.Sprites.Add(spriteToReplace);
+    }
+
+    spriteToReplace.MarginLeft = section["marginLeft"] is not null ? Convert.ToUInt16(section["marginLeft"]) : spriteToReplace.MarginLeft;
+    spriteToReplace.MarginRight = section["marginRight"] is not null ? Convert.ToUInt16(section["marginRight"]) : spriteToReplace.MarginRight;
+    spriteToReplace.MarginTop = section["marginTop"] is not null ? Convert.ToUInt16(section["marginTop"]) : spriteToReplace.MarginTop;
+    spriteToReplace.MarginBottom = section["marginBottom"] is not null ? Convert.ToUInt16(section["marginBottom"]) : spriteToReplace.MarginBottom;
+
+    spriteToReplace.Transparent = section["transparent"] is not null ? Convert.ToBoolean(section["transparent"]) : spriteToReplace.Transparent;
+    spriteToReplace.Smooth = section["smooth"] is not null ? Convert.ToBoolean(section["smooth"]) : spriteToReplace.Smooth;
+    spriteToReplace.Preload = section["preload"] is not null ? Convert.ToBoolean(section["preload"]) : spriteToReplace.Preload;
+
+    spriteToReplace.BBoxMode = section["bboxMode"] is not null ? Convert.ToUInt16(section["bboxMode"]) : spriteToReplace.BBoxMode;
+
+    spriteToReplace.SepMasks = section["sepMasks"] is not null ? (UndertaleSprite.SepMaskType)Convert.ToUInt32(section["sepMasks"]) : spriteToReplace.SepMasks;
+
+    spriteToReplace.OriginX = section["originX"] is not null ? Convert.ToUInt16(section["originX"]) : spriteToReplace.OriginX;
+    spriteToReplace.OriginY = section["originY"] is not null ? Convert.ToUInt16(section["originY"]) : spriteToReplace.OriginY;
+
+    //spriteToReplace.CollisionMasks
+
+    spriteToReplace.IsSpecialType = section["isSpecialType"] is not null ? Convert.ToBoolean(section["isSpecialType"]) : spriteToReplace.IsSpecialType;
+
+    spriteToReplace.SVersion = section["version"] is not null ? Convert.ToUInt16(section["version"]) : spriteToReplace.SVersion;
+    spriteToReplace.SSpriteType = section["spriteType"] is not null ? (UndertaleSprite.SpriteType)Convert.ToUInt16(section["spriteType"]) : spriteToReplace.SSpriteType;
+
+    spriteToReplace.GMS2PlaybackSpeed = section["gms2PlaybackSpeed"] is not null ? Convert.ToSingle(section["gms2PlaybackSpeed"]) : spriteToReplace.GMS2PlaybackSpeed;
+    spriteToReplace.GMS2PlaybackSpeedType = section["gms2PlaybackSpeedType"] is not null ? (AnimSpeedType)Convert.ToUInt16(section["gms2PlaybackSpeedType"]) : spriteToReplace.GMS2PlaybackSpeedType;
+}
+
+/*
+void ReplaceRoom()
+{
+    gameData.Rooms[0].
+}
+*/
+
 void AddScriptToSequence(string codeName, IList<UndertaleGlobalInit> list)
 {
     var codeToAdd = gameData.Code.First(x => x.Name.Content == codeName);
@@ -255,5 +362,13 @@ void AddScriptToSequence(string codeName, IList<UndertaleGlobalInit> list)
     list.Add(new UndertaleGlobalInit(){
         Code = codeToAdd
     });
+}
+
+void CopyExternalAsset(string fileToCopyPath, string destinationPath, int modPriority)
+{
+    if (IsAssetUnavailable(typeof(File), fileToCopyPath, modPriority))
+        return;
+
+    File.Copy(fileToCopyPath, destinationPath, true);
 }
 #endregion
