@@ -8,6 +8,8 @@ using UndertaleModLib;
 using UndertaleModLib.Models;
 using UndertaleModLib.Compiler;
 using System.Drawing;
+using System.Collections;
+using System.Linq;
 #endregion
 
 #region Fields
@@ -120,6 +122,54 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         var scriptsIni = new ConfigurationBuilder().AddIniFile($"{folder}/gameEndScripts.ini").Build();
         foreach (var section in scriptsIni.GetChildren())
             AddScriptToSequence(section.Key, gameData.GameEndScripts);
+    }
+
+    if (Path.Exists($"{folder}/objects.ini"))
+    {
+        Console.WriteLine("Modifying objects...");
+        var objectsIni = new ConfigurationBuilder().AddIniFile($"{folder}/objects.ini").Build();
+        foreach (IConfigurationSection objectSection in objectsIni.GetChildren())
+        {
+            Console.WriteLine($"Modifying object {objectSection.Key}");
+            ModifyObject(objectSection, modPriority);
+        }
+    }
+
+    if (Directory.Exists($"{folder}/ObjectPhysicsShapeVertices"))
+    {
+        Console.WriteLine("Modifying object physics shape vertices...");
+        foreach (string objectIniPath in Directory.GetFiles($"{folder}/ObjectPhysicsShapeVertices").Where(x => x.EndsWith(".ini")))
+        {
+            string objectName = Path.GetFileNameWithoutExtension(objectIniPath);
+            Console.WriteLine($"Modifying object {objectName}");
+            var fileConfig = new ConfigurationBuilder().AddIniFile(objectIniPath).Build();
+            ModifyObjectPhysicsShapeVertices(Path.GetFileNameWithoutExtension(objectName), fileConfig.GetSection("Remove"), true);
+            ModifyObjectPhysicsShapeVertices(Path.GetFileNameWithoutExtension(objectName), fileConfig.GetSection("Add"), false);
+        }
+    }
+
+    if (Directory.Exists($"{folder}/RemoveObjectEvents"))
+    {
+        Console.WriteLine("Removing object events...");
+        foreach (string objectIniPath in Directory.GetFiles($"{folder}/RemoveObjectEvents").Where(x => x.EndsWith(".ini")))
+        {
+            string objectName = Path.GetFileNameWithoutExtension(objectIniPath);
+            Console.WriteLine($"Modifying object {objectName}");
+            var fileConfig = new ConfigurationBuilder().AddIniFile(objectIniPath).Build();
+            ModifyObjectEvents(objectName, fileConfig, true);
+        }
+    }
+
+    if (Directory.Exists($"{folder}/AddObjectEvents"))
+    {
+        Console.WriteLine("Adding object events...");
+        foreach (string objectIniPath in Directory.GetFiles($"{folder}/AddObjectEvents").Where(x => x.EndsWith(".ini")))
+        {
+            string objectName = Path.GetFileNameWithoutExtension(objectIniPath);
+            Console.WriteLine($"Modifying object {objectName}");
+            var fileConfig = new ConfigurationBuilder().AddIniFile(objectIniPath).Build();
+            ModifyObjectEvents(objectName, fileConfig, false);
+        }
     }
 
     if (Directory.Exists($"{folder}/ExternalAssets") && Path.Exists($"{folder}/ExternalAssets/externalAssets.ini"))
@@ -342,12 +392,110 @@ void ReplaceSprite(IConfigurationSection section, int modPriority)
     spriteToReplace.GMS2PlaybackSpeedType = section["gms2PlaybackSpeedType"] is not null ? (AnimSpeedType)Convert.ToUInt16(section["gms2PlaybackSpeedType"]) : spriteToReplace.GMS2PlaybackSpeedType;
 }
 
-/*
-void ReplaceRoom()
+/*void ReplaceRoom()
 {
-    gameData.Rooms[0].
+    gameData.Rooms[0].Layers[0].InstancesData.Instances.
+}*/
+
+void ModifyObject(IConfigurationSection section, int modPriority)
+{
+    string objectName = section.Key;
+
+    if (IsAssetUnavailable(typeof(UndertaleObject), objectName, modPriority))
+        return;
+
+    UndertaleGameObject objectToModify = gameData.GameObjects.First(x => x.Name.Content == objectName);
+
+    if (objectToModify is null)
+    {
+        Console.WriteLine($"Object {objectName} not found, skipping object, pain head.");
+        return;
+    }
+
+    objectToModify.Sprite = section["sprite"] is not null ? gameData.Sprites.First(x => x.Name.Content == section["sprite"]) : objectToModify.Sprite;
+    objectToModify.Visible = section["visible"] is not null ? Convert.ToBoolean(section["visible"]) : objectToModify.Visible;
+    objectToModify.Solid = section["solid"] is not null ? Convert.ToBoolean(section["solid"]) : objectToModify.Solid;
+    objectToModify.Persistent = section["persistent"] is not null ? Convert.ToBoolean(section["persistent"]) : objectToModify.Persistent;
+    objectToModify.ParentId = section["parentId"] is not null ? gameData.GameObjects.First(x => x.Name.Content == section["parentId"]) : objectToModify.ParentId;
+    objectToModify.TextureMaskId = section["textureMaskId"] is not null ? gameData.Sprites.First(x => x.Name.Content == section["textureMaskId"]) : objectToModify.TextureMaskId;
+    objectToModify.UsesPhysics = section["usesPhysics"] is not null ? Convert.ToBoolean(section["usesPhysics"]) : objectToModify.UsesPhysics;
+    objectToModify.IsSensor = section["isSensor"] is not null ? Convert.ToBoolean(section["isSensor"]) : objectToModify.IsSensor;
+    objectToModify.CollisionShape = section["collisionShape"] is not null ? (CollisionShapeFlags)Convert.ToUInt16(section["collisionShape"]) : objectToModify.CollisionShape;
+    objectToModify.Density = section["density"] is not null ? Convert.ToSingle(section["density"]) : objectToModify.Density;
+    objectToModify.Restitution = section["restitution"] is not null ? Convert.ToSingle(section["restitution"]) : objectToModify.Restitution;
+    objectToModify.Group = section["group"] is not null ? Convert.ToUInt16(section["group"]) : objectToModify.Group;
+    objectToModify.LinearDamping = section["linearDamping"] is not null ? Convert.ToSingle(section["linearDamping"]) : objectToModify.LinearDamping;
+    objectToModify.AngularDamping = section["angularDamping"] is not null ? Convert.ToSingle(section["angularDamping"]) : objectToModify.AngularDamping;
+    objectToModify.Friction = section["friction"] is not null ? Convert.ToSingle(section["friction"]) : objectToModify.Friction;
+    objectToModify.Awake = section["isAwake"] is not null ? Convert.ToBoolean(section["isAwake"]) : objectToModify.Awake;
+    objectToModify.Kinematic = section["isKinematic"] is not null ? Convert.ToBoolean(section["isKinematic"]) : objectToModify.Kinematic;
 }
-*/
+
+void ModifyObjectPhysicsShapeVertices(string objectName, IConfigurationSection section, bool isRemove)
+{
+    var objectToModify = gameData.GameObjects.First(x => x.Name.Content == objectName);
+
+    if (objectToModify is null)
+    {
+        Console.WriteLine($"Object {objectName} not found, skipping object, pain head.");
+        return;
+    }
+
+    foreach (var pair in section.GetChildren())
+    {
+        if (isRemove)
+            objectToModify.PhysicsVertices.Remove(objectToModify.PhysicsVertices.First(x => x.X == Convert.ToSingle(pair.Key) && x.Y == Convert.ToSingle(pair.Value)));
+        else
+            objectToModify.PhysicsVertices.Add(new UndertaleGameObject.UndertalePhysicsVertex(){
+                X = Convert.ToSingle(pair.Key),
+                Y = Convert.ToSingle(pair.Value)
+            });
+    }
+}
+
+void ModifyObjectEvents(string objectName, IConfigurationRoot section, bool isRemove)
+{
+    var objectWhosEventsAreWishedToBeModified = gameData.GameObjects.First(x => x.Name.Content == objectName);
+
+    if (objectWhosEventsAreWishedToBeModified is null)
+    {
+        Console.WriteLine($"Object {objectName} not found, skipping object, pain head.");
+        return;
+    }
+
+    foreach (var eventSection in section.GetChildren())
+    {
+        var eventToModify = objectWhosEventsAreWishedToBeModified.Events[Convert.ToInt32(eventSection.Key)];
+
+        if (eventToModify is null)
+        {
+            Console.WriteLine($"Event {eventSection.Key} not found, skipping event, pain head.");
+            continue;
+        }
+
+        foreach (var subtypeSections in eventSection.GetChildren())
+        {
+            if (subtypeSections.Value is null)
+                continue;
+
+            if (isRemove)
+            {
+                eventToModify.Remove(eventToModify.First(x => x.EventSubtype == Convert.ToUInt16(subtypeSections.Key) && x.Actions[0].CodeId.Name.Content == subtypeSections.Value));
+                continue;
+            }
+
+            var subtypeToModify = new UndertaleGameObject.Event(){
+                EventSubtype = Convert.ToUInt16(subtypeSections.Key)
+            };
+
+            subtypeToModify.Actions.Add(new UndertaleGameObject.EventAction(){
+                CodeId = gameData.Code.First(x => x.Name.Content == subtypeSections.Value)
+            });
+
+            eventToModify.Add(subtypeToModify);
+        }
+    }
+}
 
 void AddScriptToSequence(string codeName, IList<UndertaleGlobalInit> list)
 {
