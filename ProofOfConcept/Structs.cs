@@ -4,4 +4,5 @@ struct ReplacedAssetInfo
     public int modPriority;
     //public string modName;
     public Type assetType;
+    public string? property;
 }

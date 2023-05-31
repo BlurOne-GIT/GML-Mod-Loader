@@ -201,9 +201,9 @@ Console.ReadKey();
 #endregion
 
 #region Methods
-bool IsAssetUnavailable(Type assetType, string assetName, int modPriority)
+bool IsAssetUnavailable(Type assetType, string assetName, int modPriority, string? property = null)
 {
-    bool isUnavailable = replacedAssets.Any(x => x.assetName == assetName && x.modPriority < modPriority && x.assetType == assetType);
+    bool isUnavailable = replacedAssets.Any(x => x.assetName == assetName && x.modPriority < modPriority && x.assetType == assetType && x.property == property);
 
     if (isUnavailable)
         Console.WriteLine($"Asset {assetName} of type {assetType.Name} already replaced with a higher priority mod, pain ahead.");
@@ -211,11 +211,49 @@ bool IsAssetUnavailable(Type assetType, string assetName, int modPriority)
         replacedAssets.Add(new ReplacedAssetInfo() {
             assetName = assetName,
             modPriority = modPriority,
-            assetType = assetType
+            assetType = assetType,
+            property = property
         });
 
     return isUnavailable;
 }
+
+/* This refactoring may not be worth.
+T? GetProperty<T>(string key, IConfigurationSection section, )
+{
+    return default(T);
+}
+*/
+
+ushort? GetUInt16Ini(string value)
+{
+    if (value is null || value is "")
+        return null;
+
+    return Convert.ToUInt16(value);
+}
+
+float? GetSingleIni(string value)
+{
+    if (value is null || value is "")
+        return null;
+
+    return Convert.ToSingle(value);
+}
+
+bool? GetBooleanIni(string value)
+{
+    if (value is null || value is "")
+        return null;
+    
+    return Convert.ToBoolean(value);
+}
+
+/*T? GetSimpleTypeIni<T>(string value)
+{
+    if (value is null || value is "")
+        return null;
+}*/
 
 void ReplaceCode(string codePath, int modPriority)
 {
@@ -238,6 +276,7 @@ void ReplaceCode(string codePath, int modPriority)
     CompileContext context = Compiler.CompileGMLText(File.ReadAllText(codePath), gameData, codeToReplace);
     codeToReplace.Replace(context.ResultAssembly);
 
+    // TODO: Fix this path not pointing correctly and adapt to single .ini model
     if (Path.Exists($"./{codeName}.ini"))
     {
         IConfigurationSection fileConfig = new ConfigurationBuilder().AddIniFile("./code.ini").Build().GetSection(codeName);
@@ -307,6 +346,7 @@ void ReplaceTexture(string texturePath, int modPriority)
     textureToReplace.SourceHeight = height;
     textureToReplace.TargetHeight = height;
 
+    // TODO: Fix this path not pointing to correct position
     if (Path.Exists($"./textures.ini"))
     {
         var fileConfig = new ConfigurationBuilder().AddIniFile($"./textures.ini").Build().GetSection(textureName);
@@ -381,7 +421,7 @@ void ReplaceSprite(IConfigurationSection section, int modPriority)
     spriteToReplace.OriginX = section["originX"] is not null ? Convert.ToUInt16(section["originX"]) : spriteToReplace.OriginX;
     spriteToReplace.OriginY = section["originY"] is not null ? Convert.ToUInt16(section["originY"]) : spriteToReplace.OriginY;
 
-    //spriteToReplace.CollisionMasks
+    //spriteToReplace.CollisionMasks = section["collisionMasks"] is not null ? gameData.Sprites.First(x => x.Name.Content == section["collisionMasks"]).CollisionMasks : spriteToReplace.CollisionMasks;
 
     spriteToReplace.IsSpecialType = section["isSpecialType"] is not null ? Convert.ToBoolean(section["isSpecialType"]) : spriteToReplace.IsSpecialType;
 
@@ -392,10 +432,22 @@ void ReplaceSprite(IConfigurationSection section, int modPriority)
     spriteToReplace.GMS2PlaybackSpeedType = section["gms2PlaybackSpeedType"] is not null ? (AnimSpeedType)Convert.ToUInt16(section["gms2PlaybackSpeedType"]) : spriteToReplace.GMS2PlaybackSpeedType;
 }
 
-/*void ReplaceRoom()
+/*
+void ModifyRoomValues()
 {
-    gameData.Rooms[0].Layers[0].InstancesData.Instances.
-}*/
+
+}
+
+void ReplaceTiles()
+{
+    
+}
+
+void ModifyInstances()
+{
+
+}
+*/
 
 void ModifyObject(IConfigurationSection section, int modPriority)
 {
