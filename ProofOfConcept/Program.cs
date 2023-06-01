@@ -23,6 +23,8 @@ Dictionary<string, int> moddedSprites = new Dictionary<string, int>();
 Dictionary<string, int> moddedScripts = new Dictionary<string, int>();
 List<ReplacedAssetInfo> replacedAssets = new List<ReplacedAssetInfo>();
 
+string[] forbiddenFiles = {"data.win"};
+
 UndertaleData gameData;
 string gameFolderPath = Path.GetDirectoryName(gameDataPath)!;
 
@@ -181,7 +183,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
             Console.WriteLine($"Copying {file}");
             string fileName = Path.GetFileName(file);
             string destination = $"{gameFolderPath}/{iniFile[fileName]!}{(iniFile[fileName]!.EndsWith("/") ? "" : "/")}{fileName}";
-            if (destination.Contains("..") || destination.Contains("%"))
+            if (destination.Contains("..") || destination.Contains("%") || destination.Contains(".exe") || destination.Contains(".dll"))
             {
                 Console.WriteLine("Invalid destination, skipping");
                 continue;
@@ -203,7 +205,7 @@ Console.ReadKey();
 #region Methods
 bool IsAssetUnavailable(Type assetType, string assetName, int modPriority, string? property = null)
 {
-    bool isUnavailable = replacedAssets.Any(x => x.assetName == assetName && x.modPriority < modPriority && x.assetType == assetType && x.property == property);
+    bool isUnavailable = replacedAssets.Any(x => x.assetName == assetName && x.modPriority < modPriority && x.assetType == assetType && x.propertyName == property);
 
     if (isUnavailable)
         Console.WriteLine($"Asset {assetName} of type {assetType.Name} already replaced with a higher priority mod, pain ahead.");
@@ -212,48 +214,11 @@ bool IsAssetUnavailable(Type assetType, string assetName, int modPriority, strin
             assetName = assetName,
             modPriority = modPriority,
             assetType = assetType,
-            property = property
+            propertyName = property
         });
 
     return isUnavailable;
 }
-
-/* This refactoring may not be worth.
-T? GetProperty<T>(string key, IConfigurationSection section, )
-{
-    return default(T);
-}
-*/
-
-ushort? GetUInt16Ini(string value)
-{
-    if (value is null || value is "")
-        return null;
-
-    return Convert.ToUInt16(value);
-}
-
-float? GetSingleIni(string value)
-{
-    if (value is null || value is "")
-        return null;
-
-    return Convert.ToSingle(value);
-}
-
-bool? GetBooleanIni(string value)
-{
-    if (value is null || value is "")
-        return null;
-    
-    return Convert.ToBoolean(value);
-}
-
-/*T? GetSimpleTypeIni<T>(string value)
-{
-    if (value is null || value is "")
-        return null;
-}*/
 
 void ReplaceCode(string codePath, int modPriority)
 {
@@ -277,10 +242,10 @@ void ReplaceCode(string codePath, int modPriority)
     codeToReplace.Replace(context.ResultAssembly);
 
     // TODO: Fix this path not pointing correctly and adapt to single .ini model
-    if (Path.Exists($"./{codeName}.ini"))
+    if (Path.Exists(Path.GetDirectoryName(codePath) + "/code.ini"))
     {
-        IConfigurationSection fileConfig = new ConfigurationBuilder().AddIniFile("./code.ini").Build().GetSection(codeName);
-        codeToReplace.LocalsCount = fileConfig["localsCount"] is not null ? Convert.ToUInt16(fileConfig["localsCount"]) : codeToReplace.LocalsCount;
+        IConfigurationSection fileConfig = new ConfigurationBuilder().AddIniFile(Path.GetDirectoryName(codePath) + "./code.ini").Build().GetSection(codeName);
+        codeToReplace.LocalsCount = fileConfig["localsCount"] is not null ? Convert.ToUInt32(fileConfig["localsCount"]) : codeToReplace.LocalsCount;
         codeToReplace.ArgumentsCount = fileConfig["argumentsCount"] is not null ? Convert.ToUInt16(fileConfig["argumentsCount"]) : codeToReplace.ArgumentsCount;
         codeToReplace.Offset = fileConfig["offset"] is not null ? Convert.ToUInt32(fileConfig["offset"]) : codeToReplace.Offset;
     }
@@ -346,10 +311,9 @@ void ReplaceTexture(string texturePath, int modPriority)
     textureToReplace.SourceHeight = height;
     textureToReplace.TargetHeight = height;
 
-    // TODO: Fix this path not pointing to correct position
-    if (Path.Exists($"./textures.ini"))
+    if (Path.Exists(Path.GetDirectoryName(texturePath) + "/texture.ini"))
     {
-        var fileConfig = new ConfigurationBuilder().AddIniFile($"./textures.ini").Build().GetSection(textureName);
+        var fileConfig = new ConfigurationBuilder().AddIniFile(Path.GetDirectoryName(texturePath) + "./textures.ini").Build().GetSection(textureName);
         textureToReplace.TargetX = fileConfig["targetX"] is not null ? Convert.ToUInt16(fileConfig["targetX"]) : textureToReplace.TargetX;
         textureToReplace.TargetY = fileConfig["targetY"] is not null ? Convert.ToUInt16(fileConfig["targetY"]) : textureToReplace.TargetY;
         textureToReplace.BoundingWidth = fileConfig["boundingWidth"] is not null ? Convert.ToUInt16(fileConfig["boundingWidth"]) : textureToReplace.BoundingWidth;
@@ -405,31 +369,34 @@ void ReplaceSprite(IConfigurationSection section, int modPriority)
         gameData.Sprites.Add(spriteToReplace);
     }
 
-    spriteToReplace.MarginLeft = section["marginLeft"] is not null ? Convert.ToUInt16(section["marginLeft"]) : spriteToReplace.MarginLeft;
-    spriteToReplace.MarginRight = section["marginRight"] is not null ? Convert.ToUInt16(section["marginRight"]) : spriteToReplace.MarginRight;
-    spriteToReplace.MarginTop = section["marginTop"] is not null ? Convert.ToUInt16(section["marginTop"]) : spriteToReplace.MarginTop;
-    spriteToReplace.MarginBottom = section["marginBottom"] is not null ? Convert.ToUInt16(section["marginBottom"]) : spriteToReplace.MarginBottom;
+    spriteToReplace.Width = section["width"] is not null ? Convert.ToUInt32(section["width"]) : spriteToReplace.Width;
+    spriteToReplace.Height = section["height"] is not null ? Convert.ToUInt32(section["height"]) : spriteToReplace.Height;
+
+    spriteToReplace.MarginLeft = section["marginLeft"] is not null ? Convert.ToInt32(section["marginLeft"]) : spriteToReplace.MarginLeft;
+    spriteToReplace.MarginRight = section["marginRight"] is not null ? Convert.ToInt32(section["marginRight"]) : spriteToReplace.MarginRight;
+    spriteToReplace.MarginTop = section["marginTop"] is not null ? Convert.ToInt32(section["marginTop"]) : spriteToReplace.MarginTop;
+    spriteToReplace.MarginBottom = section["marginBottom"] is not null ? Convert.ToInt32(section["marginBottom"]) : spriteToReplace.MarginBottom;
 
     spriteToReplace.Transparent = section["transparent"] is not null ? Convert.ToBoolean(section["transparent"]) : spriteToReplace.Transparent;
     spriteToReplace.Smooth = section["smooth"] is not null ? Convert.ToBoolean(section["smooth"]) : spriteToReplace.Smooth;
     spriteToReplace.Preload = section["preload"] is not null ? Convert.ToBoolean(section["preload"]) : spriteToReplace.Preload;
 
-    spriteToReplace.BBoxMode = section["bboxMode"] is not null ? Convert.ToUInt16(section["bboxMode"]) : spriteToReplace.BBoxMode;
+    spriteToReplace.BBoxMode = section["bboxMode"] is not null ? Convert.ToUInt32(section["bboxMode"]) : spriteToReplace.BBoxMode;
 
     spriteToReplace.SepMasks = section["sepMasks"] is not null ? (UndertaleSprite.SepMaskType)Convert.ToUInt32(section["sepMasks"]) : spriteToReplace.SepMasks;
 
-    spriteToReplace.OriginX = section["originX"] is not null ? Convert.ToUInt16(section["originX"]) : spriteToReplace.OriginX;
-    spriteToReplace.OriginY = section["originY"] is not null ? Convert.ToUInt16(section["originY"]) : spriteToReplace.OriginY;
+    spriteToReplace.OriginX = section["originX"] is not null ? Convert.ToInt32(section["originX"]) : spriteToReplace.OriginX;
+    spriteToReplace.OriginY = section["originY"] is not null ? Convert.ToInt32(section["originY"]) : spriteToReplace.OriginY;
 
     //spriteToReplace.CollisionMasks = section["collisionMasks"] is not null ? gameData.Sprites.First(x => x.Name.Content == section["collisionMasks"]).CollisionMasks : spriteToReplace.CollisionMasks;
 
     spriteToReplace.IsSpecialType = section["isSpecialType"] is not null ? Convert.ToBoolean(section["isSpecialType"]) : spriteToReplace.IsSpecialType;
 
-    spriteToReplace.SVersion = section["version"] is not null ? Convert.ToUInt16(section["version"]) : spriteToReplace.SVersion;
+    spriteToReplace.SVersion = section["version"] is not null ? Convert.ToUInt32(section["version"]) : spriteToReplace.SVersion;
     spriteToReplace.SSpriteType = section["spriteType"] is not null ? (UndertaleSprite.SpriteType)Convert.ToUInt16(section["spriteType"]) : spriteToReplace.SSpriteType;
 
     spriteToReplace.GMS2PlaybackSpeed = section["gms2PlaybackSpeed"] is not null ? Convert.ToSingle(section["gms2PlaybackSpeed"]) : spriteToReplace.GMS2PlaybackSpeed;
-    spriteToReplace.GMS2PlaybackSpeedType = section["gms2PlaybackSpeedType"] is not null ? (AnimSpeedType)Convert.ToUInt16(section["gms2PlaybackSpeedType"]) : spriteToReplace.GMS2PlaybackSpeedType;
+    spriteToReplace.GMS2PlaybackSpeedType = section["gms2PlaybackSpeedType"] is not null ? (AnimSpeedType)Convert.ToUInt32(section["gms2PlaybackSpeedType"]) : spriteToReplace.GMS2PlaybackSpeedType;
 }
 
 /*
@@ -475,7 +442,7 @@ void ModifyObject(IConfigurationSection section, int modPriority)
     objectToModify.CollisionShape = section["collisionShape"] is not null ? (CollisionShapeFlags)Convert.ToUInt16(section["collisionShape"]) : objectToModify.CollisionShape;
     objectToModify.Density = section["density"] is not null ? Convert.ToSingle(section["density"]) : objectToModify.Density;
     objectToModify.Restitution = section["restitution"] is not null ? Convert.ToSingle(section["restitution"]) : objectToModify.Restitution;
-    objectToModify.Group = section["group"] is not null ? Convert.ToUInt16(section["group"]) : objectToModify.Group;
+    objectToModify.Group = section["group"] is not null ? Convert.ToUInt32(section["group"]) : objectToModify.Group;
     objectToModify.LinearDamping = section["linearDamping"] is not null ? Convert.ToSingle(section["linearDamping"]) : objectToModify.LinearDamping;
     objectToModify.AngularDamping = section["angularDamping"] is not null ? Convert.ToSingle(section["angularDamping"]) : objectToModify.AngularDamping;
     objectToModify.Friction = section["friction"] is not null ? Convert.ToSingle(section["friction"]) : objectToModify.Friction;
