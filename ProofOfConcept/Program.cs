@@ -51,7 +51,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
 {
     var modConfig = new ConfigurationBuilder().AddIniFile($"{folder}/mod.ini").Build().GetSection("Loader");
     modPriority = Convert.ToInt32(modConfig["priority"]);
-    modName = modConfig["name"] ?? Path.GetDirectoryName(folder)!;
+    modName = modConfig["name"] ?? Path.GetFileNameWithoutExtension(folder)!;
 
     if (!Convert.ToBoolean(modConfig["enabled"]) || modConfig["game"] != gameData.GeneralInfo.Name.Content)
         continue;
