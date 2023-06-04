@@ -5,8 +5,39 @@ The way we do this is something like the Sonic Mania or Sonic 3 AIR mod loaders 
 
 As of now we are working in a Proof of Concept command line version for testing the capabilities and testing. Once we reach a point where it's usable enough, we'll release a public beta of the command line version to get feedback and issues so that we can keep on developing, meanwhile we develop the user interface.
 
-### Other sources
+## UndertaleModTool Features
+### Already implemented:
+- Global init
+- Game End scripts
+- Sprites
+- Scripts
+- Game objects
+- Code
 
+### Yet to be implemented:
+- Audio groups
+- Sounds
+- Backgrounds & Tile sets
+- Paths
+- Shaders
+- Fonts
+- Timelines
+- Rooms
+- Extensions
+- Code locals
+- Texture group information
+
+### No need for implementation:
+- General info  
+- Texture page items
+- Variables
+- Functions
+- Strings
+- Embedded textures
+- Embedded audio
+- Embedded images
+
+## Other sources
 - [GameBanana's WIP Page](https://gamebanana.com/wips/76181)
 - [BlurOne!'s YouTube channel](https://www.youtube.com/@_blurone_) (For video updates of the project)
 - [Development Discord Server](https://discord.gg/y8jBh3jhw2)
