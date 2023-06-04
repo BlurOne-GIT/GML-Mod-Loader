@@ -227,7 +227,7 @@ void ReplaceCode(string codePath, int modPriority)
     if (IsAssetUnavailable(typeof(UndertaleCode), codeName, modPriority))
         return;
 
-    UndertaleCode codeToReplace = gameData.Code.First(x => x.Name.Content == codeName);
+    UndertaleCode? codeToReplace = gameData.Code.FirstOrDefault((x => x!.Name.Content == codeName), null);
 
     if (codeToReplace is null)
     {
@@ -260,7 +260,7 @@ void ReplaceTexture(string texturePath, int modPriority)
     if (IsAssetUnavailable(typeof(UndertaleSprite), spriteName, modPriority))
         return;
 
-    UndertaleSprite textureSprite = gameData.Sprites.First(x => x.Name.Content == spriteName);
+    UndertaleSprite? textureSprite = gameData.Sprites.FirstOrDefault((x => x!.Name.Content == spriteName), null);
 
     if (textureSprite is null)
     {
@@ -336,7 +336,7 @@ void ReplaceScript(string scriptName, string codeName, bool isConstructor, int m
         return;
     }
 
-    UndertaleScript scriptToReplace = gameData.Scripts.First(x => x.Name.Content == scriptName);
+    UndertaleScript? scriptToReplace = gameData.Scripts.FirstOrDefault((x => x!.Name.Content == scriptName), null);
 
     if (scriptToReplace is null)
     {
@@ -358,7 +358,7 @@ void ReplaceSprite(IConfigurationSection section, int modPriority)
     if (IsAssetUnavailable(typeof(UndertaleSprite), spriteName, modPriority))
         return;
     
-    UndertaleSprite spriteToReplace = gameData.Sprites.First(x => x.Name.Content == spriteName);
+    UndertaleSprite? spriteToReplace = gameData.Sprites.FirstOrDefault((x => x!.Name.Content == spriteName), null);
 
     if (spriteToReplace is null)
     {
@@ -423,7 +423,7 @@ void ModifyObject(IConfigurationSection section, int modPriority)
     if (IsAssetUnavailable(typeof(UndertaleObject), objectName, modPriority))
         return;
 
-    UndertaleGameObject objectToModify = gameData.GameObjects.First(x => x.Name.Content == objectName);
+    UndertaleGameObject? objectToModify = gameData.GameObjects.FirstOrDefault((x => x!.Name.Content == objectName), null);
 
     if (objectToModify is null)
     {
