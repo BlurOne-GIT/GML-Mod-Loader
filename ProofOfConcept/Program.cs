@@ -522,9 +522,12 @@ void ModifyObjectEvents(string objectName, IConfigurationRoot section, bool isRe
 
             if (isRemove)
             {
+                Console.WriteLine($"Removing code {subtypeSections.Value} from event {eventSection.Key} subtype {subtypeSections.Key}.");
                 eventToModify.Remove(eventToModify.First(x => x.EventSubtype == Convert.ToUInt16(subtypeSections.Key) && x.Actions[0].CodeId.Name.Content == subtypeSections.Value));
                 continue;
             }
+
+            Console.WriteLine($"Adding code {subtypeSections.Value} to event {eventSection.Key} subtype {subtypeSections.Key}.");
 
             var subtypeToModify = new UndertaleGameObject.Event(){
                 EventSubtype = Convert.ToUInt16(subtypeSections.Key)
