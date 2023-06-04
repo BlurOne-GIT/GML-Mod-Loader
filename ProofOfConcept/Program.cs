@@ -17,6 +17,8 @@ string gameDataPath = args[0];
 string modsFolder = args[1];
 string loaderConfigPath = $"{modsFolder}/loader.ini";
 var loaderConfig = new ConfigurationBuilder().AddIniFile(loaderConfigPath).Build().GetSection("Loader");
+int modPriority;
+string modName;
 
 Dictionary<string, int> moddedCodes = new Dictionary<string, int>();
 Dictionary<string, int> moddedSprites = new Dictionary<string, int>();
@@ -48,7 +50,8 @@ Console.WriteLine($"Loaded game {gameData.GeneralInfo.Name.Content}");
 foreach (string folder in Directory.GetDirectories(modsFolder))
 {
     var modConfig = new ConfigurationBuilder().AddIniFile($"{folder}/mod.ini").Build().GetSection("Loader");
-    var modPriority = Convert.ToInt32(modConfig["priority"]);
+    modPriority = Convert.ToInt32(modConfig["priority"]);
+    modName = modConfig["name"] ?? Path.GetDirectoryName(folder)!;
 
     if (!Convert.ToBoolean(modConfig["enabled"]) || modConfig["game"] != gameData.GeneralInfo.Name.Content)
         continue;
@@ -61,7 +64,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
     }
     */
     
-    Console.WriteLine($"Loading mod {modConfig["name"]}");
+    Console.WriteLine($"Loading mod {modName}");
 
     if (Path.Exists($"{folder}/sprites.ini"))
     {
@@ -70,7 +73,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         foreach (IConfigurationSection sprite in spritesIni.GetChildren())
         {
             Console.WriteLine($"Loading sprite {sprite.Key}");
-            ReplaceSprite(sprite, modPriority);
+            ReplaceSprite(sprite);
         }
     }
     
@@ -80,7 +83,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         foreach (string sprite in Directory.GetFiles($"{folder}/Textures").Where(x => !x.EndsWith(".ini")))
         {
             Console.WriteLine($"Loading texture {sprite}");
-            ReplaceTexture(sprite, modPriority);
+            ReplaceTexture(sprite);
         }
     }
 
@@ -90,7 +93,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         foreach (string code in Directory.GetFiles($"{folder}/Code").Where(x => x.EndsWith(".gml")))
         {
             Console.WriteLine($"Loading code {code}");
-            ReplaceCode(code, modPriority);
+            ReplaceCode(code);
         }
     }
 
@@ -101,12 +104,12 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         foreach (IConfigurationSection pair in scriptsIni.GetSection("Scripts").GetChildren())
         {
             Console.WriteLine($"Loading script {pair.Key}");
-            ReplaceScript(pair.Key, pair.Value!, false, modPriority);
+            ReplaceScript(pair.Key, pair.Value!, false);
         }
         foreach (IConfigurationSection pair in scriptsIni.GetSection("Constructors").GetChildren())
         {
             Console.WriteLine($"Loading global script {pair.Key}");
-            ReplaceScript(pair.Key, pair.Value!, true, Convert.ToInt32(modConfig["priority"]));
+            ReplaceScript(pair.Key, pair.Value!, true);
         }
     }
 
@@ -133,7 +136,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         foreach (IConfigurationSection objectSection in objectsIni.GetChildren())
         {
             Console.WriteLine($"Modifying object {objectSection.Key}");
-            ModifyObject(objectSection, modPriority);
+            ModifyObject(objectSection);
         }
     }
 
@@ -189,7 +192,7 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
                 continue;
             }
 
-            CopyExternalAsset(file, destination, modPriority);
+            CopyExternalAsset(file, destination);
         }
     }
 }
@@ -203,7 +206,7 @@ Console.ReadKey();
 #endregion
 
 #region Methods
-bool IsAssetUnavailable(Type assetType, string assetName, int modPriority, string? property = null)
+bool IsAssetUnavailable(Type assetType, string assetName, string? property = null)
 {
     bool isUnavailable = replacedAssets.Any(x => x.assetName == assetName && x.modPriority < modPriority && x.assetType == assetType && x.propertyName == property);
 
@@ -213,6 +216,7 @@ bool IsAssetUnavailable(Type assetType, string assetName, int modPriority, strin
         replacedAssets.Add(new ReplacedAssetInfo() {
             assetName = assetName,
             modPriority = modPriority,
+            modName = modName,
             assetType = assetType,
             propertyName = property
         });
@@ -220,11 +224,11 @@ bool IsAssetUnavailable(Type assetType, string assetName, int modPriority, strin
     return isUnavailable;
 }
 
-void ReplaceCode(string codePath, int modPriority)
+void ReplaceCode(string codePath)
 {
     string codeName = Path.GetFileNameWithoutExtension(codePath);
 
-    if (IsAssetUnavailable(typeof(UndertaleCode), codeName, modPriority))
+    if (IsAssetUnavailable(typeof(UndertaleCode), codeName))
         return;
 
     UndertaleCode? codeToReplace = gameData.Code.FirstOrDefault((x => x!.Name.Content == codeName), null);
@@ -233,8 +237,23 @@ void ReplaceCode(string codePath, int modPriority)
     {
         Console.WriteLine($"Code {codeName} not found, creating new code.");
         codeToReplace = new UndertaleCode() {
-            Name = new UndertaleString(codeName)
+            Name = gameData.Strings.MakeString(codeName)
         };
+
+        if (gameData.GeneralInfo.BytecodeVersion > 14)
+        {
+            UndertaleCodeLocals locals = new UndertaleCodeLocals(){
+                Name = codeToReplace.Name
+            };
+            UndertaleCodeLocals.LocalVar argsLocal = new UndertaleCodeLocals.LocalVar(){
+                Name = gameData.Strings.MakeString("arguments"),
+                Index = 0
+            };
+            locals.Locals.Add(argsLocal);
+            codeToReplace.LocalsCount = 1;
+            gameData.CodeLocals.Add(locals);
+        }
+
         gameData.Code.Add(codeToReplace);
     }
 
@@ -251,13 +270,13 @@ void ReplaceCode(string codePath, int modPriority)
     }
 }
 
-void ReplaceTexture(string texturePath, int modPriority)
+void ReplaceTexture(string texturePath)
 {
     string textureName = Path.GetFileNameWithoutExtension(texturePath);
     string spriteName = textureName.Remove(textureName.LastIndexOf('_'));
     int textureIndex = Convert.ToInt32(textureName.Remove(0, textureName.LastIndexOf('_') + 1));
 
-    if (IsAssetUnavailable(typeof(UndertaleSprite), spriteName, modPriority))
+    if (IsAssetUnavailable(typeof(UndertaleSprite), spriteName))
         return;
 
     UndertaleSprite? textureSprite = gameData.Sprites.FirstOrDefault((x => x!.Name.Content == spriteName), null);
@@ -266,7 +285,7 @@ void ReplaceTexture(string texturePath, int modPriority)
     {
         Console.WriteLine("Sprite not found, creating new sprite...");
         textureSprite = new UndertaleSprite() {
-            Name = new UndertaleString(spriteName)
+            Name = gameData.Strings.MakeString(spriteName)
         };
         gameData.Sprites.Add(textureSprite);
     }
@@ -323,9 +342,9 @@ void ReplaceTexture(string texturePath, int modPriority)
     textureToReplace.ReplaceTexture(imageToUse);
 }
 
-void ReplaceScript(string scriptName, string codeName, bool isConstructor, int modPriority)
+void ReplaceScript(string scriptName, string codeName, bool isConstructor)
 {
-    if (IsAssetUnavailable(typeof(UndertaleScript), scriptName, modPriority))
+    if (IsAssetUnavailable(typeof(UndertaleScript), scriptName))
         return;
 
     UndertaleCode codeToUse = gameData.Code.First(x => x.Name.Content == codeName);
@@ -342,7 +361,7 @@ void ReplaceScript(string scriptName, string codeName, bool isConstructor, int m
     {
         Console.WriteLine($"Script {scriptName} not found, creating new script.");
         scriptToReplace = new UndertaleScript() {
-            Name = new UndertaleString(scriptName),
+            Name = gameData.Strings.MakeString(scriptName),
             IsConstructor = isConstructor
         };
         gameData.Scripts.Add(scriptToReplace);
@@ -351,11 +370,11 @@ void ReplaceScript(string scriptName, string codeName, bool isConstructor, int m
     scriptToReplace.Code = codeToUse;
 }
 
-void ReplaceSprite(IConfigurationSection section, int modPriority)
+void ReplaceSprite(IConfigurationSection section)
 {
     string spriteName = section.Key;
 
-    if (IsAssetUnavailable(typeof(UndertaleSprite), spriteName, modPriority))
+    if (IsAssetUnavailable(typeof(UndertaleSprite), spriteName))
         return;
     
     UndertaleSprite? spriteToReplace = gameData.Sprites.FirstOrDefault((x => x!.Name.Content == spriteName), null);
@@ -364,7 +383,7 @@ void ReplaceSprite(IConfigurationSection section, int modPriority)
     {
         Console.WriteLine($"Sprite {spriteName} not found, creating new sprite.");
         spriteToReplace = new UndertaleSprite() {
-            Name = new UndertaleString(spriteName)
+            Name = gameData.Strings.MakeString(spriteName)
         };
         gameData.Sprites.Add(spriteToReplace);
     }
@@ -416,18 +435,22 @@ void ModifyInstances()
 }
 */
 
-void ModifyObject(IConfigurationSection section, int modPriority)
+void ModifyObject(IConfigurationSection section)
 {
     string objectName = section.Key;
 
-    if (IsAssetUnavailable(typeof(UndertaleObject), objectName, modPriority))
+    if (IsAssetUnavailable(typeof(UndertaleObject), objectName))
         return;
 
     UndertaleGameObject? objectToModify = gameData.GameObjects.FirstOrDefault((x => x!.Name.Content == objectName), null);
 
     if (objectToModify is null)
     {
-        Console.WriteLine($"Object {objectName} not found, skipping object, pain head.");
+        Console.WriteLine($"Object {objectName} not found, creating new object.");
+        objectToModify = new UndertaleGameObject() {
+            Name = gameData.Strings.MakeString(objectName)
+        };
+        gameData.GameObjects.Add(objectToModify);
         return;
     }
 
@@ -531,9 +554,9 @@ void AddScriptToSequence(string codeName, IList<UndertaleGlobalInit> list)
     });
 }
 
-void CopyExternalAsset(string fileToCopyPath, string destinationPath, int modPriority)
+void CopyExternalAsset(string fileToCopyPath, string destinationPath)
 {
-    if (IsAssetUnavailable(typeof(File), fileToCopyPath, modPriority))
+    if (IsAssetUnavailable(typeof(File), fileToCopyPath))
         return;
 
     File.Copy(fileToCopyPath, destinationPath, true);
