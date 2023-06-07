@@ -260,7 +260,6 @@ void ReplaceCode(string codePath)
     CompileContext context = Compiler.CompileGMLText(File.ReadAllText(codePath), gameData, codeToReplace);
     codeToReplace.Replace(context.ResultAssembly);
 
-    // TODO: Fix this path not pointing correctly and adapt to single .ini model
     if (Path.Exists(Path.GetDirectoryName(codePath) + "/code.ini"))
     {
         IConfigurationSection fileConfig = new ConfigurationBuilder().AddIniFile(Path.GetDirectoryName(codePath) + "./code.ini").Build().GetSection(codeName);
@@ -418,12 +417,42 @@ void ReplaceSprite(IConfigurationSection section)
     spriteToReplace.GMS2PlaybackSpeedType = section["gms2PlaybackSpeedType"] is not null ? (AnimSpeedType)Convert.ToUInt32(section["gms2PlaybackSpeedType"]) : spriteToReplace.GMS2PlaybackSpeedType;
 }
 
-/*
-void ModifyRoomValues()
+void ModifyRoomValues(IConfigurationSection section)
 {
+    string roomName = section.Key;
 
+    if (IsAssetUnavailable(typeof(UndertaleRoom), roomName))
+        return;
+    
+    UndertaleRoom? roomToModify = gameData.Rooms.FirstOrDefault((x => x!.Name.Content == roomName), null);
+
+    if (roomToModify is null)
+    {
+        Console.WriteLine($"Room {roomName} not found, creating new room.");
+        roomToModify = new UndertaleRoom() {
+            Name = gameData.Strings.MakeString(roomName)
+        };
+        gameData.Rooms.Add(roomToModify);
+    }
+
+    if (section["caption"] is not null)
+        roomToModify.Caption = gameData.Strings.MakeString(section["caption"]);
+
+    roomToModify.Width = section["width"] is not null ? Convert.ToUInt32(section["width"]) : roomToModify.Width;
+    roomToModify.Height = section["height"] is not null ? Convert.ToUInt32(section["height"]) : roomToModify.Height;
+    roomToModify.Speed = section["speed"] is not null ? Convert.ToUInt32(section["speed"]) : roomToModify.Speed;
+    roomToModify.Persistent = section["persistent"] is not null ? Convert.ToBoolean(section["persistent"]) : roomToModify.Persistent;
+    
+    if (section["creationCode"] is not null)
+        roomToModify.CreationCodeId = gameData.Code.First(x => x.Name.Content == section["creationCode"]);
+
+    // TODO
+    //roomToModify.Flags
+
+    roomToModify.World = section["world"] is not null ? Convert.ToBoolean(section["world"]) : roomToModify.World;
 }
 
+/*
 void ReplaceTiles()
 {
     
