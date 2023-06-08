@@ -7,9 +7,12 @@ using Microsoft.Extensions.Configuration;
 using UndertaleModLib;
 using UndertaleModLib.Models;
 using UndertaleModLib.Compiler;
+using System;
 using System.Drawing;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 #endregion
 
 #region Fields
@@ -19,6 +22,7 @@ string loaderConfigPath = $"{modsFolder}/loader.ini";
 var loaderConfig = new ConfigurationBuilder().AddIniFile(loaderConfigPath).Build().GetSection("Loader");
 int modPriority;
 string modName;
+bool multiplePropertyReplacement = Convert.ToBoolean(loaderConfig["multiplePropertyReplacement"]);
 
 Dictionary<string, int> moddedCodes = new Dictionary<string, int>();
 Dictionary<string, int> moddedSprites = new Dictionary<string, int>();
@@ -224,6 +228,55 @@ bool IsAssetUnavailable(Type assetType, string assetName, string? property = nul
     return isUnavailable;
 }
 
+void ValueReplacer(ref UndertaleNamedResource undertaleClass, string propertyName, string value)
+{
+    if (IsAssetUnavailable(undertaleClass.GetType(), undertaleClass.Name.Content, propertyName))
+        return;
+
+    PropertyInfo? property = undertaleClass.GetType().GetProperty(propertyName);
+    
+    if (property is null || !property.CanWrite)
+    {
+        Console.WriteLine($"Property {propertyName} for type {undertaleClass.GetType()} (asset {undertaleClass.Name}) not found or not writable, skipping.");
+        return;
+    }
+
+    if (property.PropertyType.IsSubclassOf(typeof(UndertaleNamedResource)))
+    {
+        var method = typeof(UndertaleValueLookupHelper).GetMethod("UndertaleValueLookup")!.MakeGenericMethod(property.PropertyType);
+        var helper = new UndertaleValueLookupHelper();
+        var result = method.Invoke(helper, new object[] { value, gameData });
+
+        if (result is null)
+        {
+            Console.WriteLine($"Failed to find asset {value} of type {property.PropertyType}, skipping.");
+            return;
+        }
+
+        property.SetValue(undertaleClass, result);
+        return;
+    }
+
+    if (property.PropertyType == typeof(UndertaleString))
+    {
+        property.SetValue(undertaleClass, gameData.Strings.MakeString(value));
+        return;
+    }
+
+    try
+    {
+        property.SetValue(undertaleClass, Convert.ChangeType(value, property.PropertyType));
+    }
+    catch (Exception)
+    {
+        Console.WriteLine($"Failed to convert {value} to type {property.PropertyType}, skipping.");
+    }
+}
+
+T? UndertaleValueLookup<T>(string name)
+    where T : UndertaleNamedResource
+        => new List<T>((gameData[typeof(T)] as IList<T>)!).FirstOrDefault((x => x!.Name.Content == name), default(T));
+
 void ReplaceCode(string codePath)
 {
     string codeName = Path.GetFileNameWithoutExtension(codePath);
@@ -373,7 +426,7 @@ void ReplaceSprite(IConfigurationSection section)
 {
     string spriteName = section.Key;
 
-    if (IsAssetUnavailable(typeof(UndertaleSprite), spriteName))
+    if (IsAssetUnavailable(typeof(UndertaleSprite), spriteName) && !multiplePropertyReplacement)
         return;
     
     UndertaleSprite? spriteToReplace = gameData.Sprites.FirstOrDefault((x => x!.Name.Content == spriteName), null);
@@ -450,6 +503,15 @@ void ModifyRoomValues(IConfigurationSection section)
     //roomToModify.Flags
 
     roomToModify.World = section["world"] is not null ? Convert.ToBoolean(section["world"]) : roomToModify.World;
+    roomToModify.Top = section["top"] is not null ? Convert.ToUInt32(section["top"]) : roomToModify.Top;
+    roomToModify.Left = section["left"] is not null ? Convert.ToUInt32(section["left"]) : roomToModify.Left;
+    roomToModify.Right = section["right"] is not null ? Convert.ToUInt32(section["right"]) : roomToModify.Right;
+    roomToModify.Bottom = section["bottom"] is not null ? Convert.ToUInt32(section["bottom"]) : roomToModify.Bottom;
+    roomToModify.GravityX = section["gravityX"] is not null ? Convert.ToSingle(section["gravityX"]) : roomToModify.GravityX;
+    roomToModify.GravityY = section["gravityY"] is not null ? Convert.ToSingle(section["gravityY"]) : roomToModify.GravityY;
+    roomToModify.GridWidth = section["gridWidth"] is not null ? Convert.ToDouble(section["gridWidth"]) : roomToModify.GridWidth;
+    roomToModify.GridHeight = section["gridHeight"] is not null ? Convert.ToDouble(section["gridHeight"]) : roomToModify.GridHeight;
+    roomToModify.GridThicknessPx = section["gridThicknessPx"] is not null ? Convert.ToUInt32(section["gridThicknessPx"]) : roomToModify.GridThicknessPx;
 }
 
 /*
