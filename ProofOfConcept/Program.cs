@@ -228,9 +228,9 @@ bool IsAssetUnavailable(Type assetType, string assetName, string? property = nul
     return isUnavailable;
 }
 
-void ValueReplacer(ref UndertaleNamedResource undertaleClass, string propertyName, string value)
+void ValueReplacer(UndertaleNamedResource undertaleClass, string propertyName, string? value)
 {
-    if (IsAssetUnavailable(undertaleClass.GetType(), undertaleClass.Name.Content, propertyName))
+    if (IsAssetUnavailable(undertaleClass.GetType(), undertaleClass.Name.Content, propertyName) || value is null || value is "")
         return;
 
     PropertyInfo? property = undertaleClass.GetType().GetProperty(propertyName);
@@ -440,6 +440,12 @@ void ReplaceSprite(IConfigurationSection section)
         gameData.Sprites.Add(spriteToReplace);
     }
 
+    foreach (var pair in section.GetChildren())
+    {
+        ValueReplacer(spriteToReplace, pair.Key, pair.Value);
+    }
+
+    /*
     spriteToReplace.Width = section["width"] is not null ? Convert.ToUInt32(section["width"]) : spriteToReplace.Width;
     spriteToReplace.Height = section["height"] is not null ? Convert.ToUInt32(section["height"]) : spriteToReplace.Height;
 
@@ -468,6 +474,7 @@ void ReplaceSprite(IConfigurationSection section)
 
     spriteToReplace.GMS2PlaybackSpeed = section["gms2PlaybackSpeed"] is not null ? Convert.ToSingle(section["gms2PlaybackSpeed"]) : spriteToReplace.GMS2PlaybackSpeed;
     spriteToReplace.GMS2PlaybackSpeedType = section["gms2PlaybackSpeedType"] is not null ? (AnimSpeedType)Convert.ToUInt32(section["gms2PlaybackSpeedType"]) : spriteToReplace.GMS2PlaybackSpeedType;
+    */
 }
 
 void ModifyRoomValues(IConfigurationSection section)
