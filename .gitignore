@@ -473,3 +473,4 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+ProofOfConcept/.vscode/launch.json
