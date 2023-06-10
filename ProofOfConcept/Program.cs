@@ -510,7 +510,24 @@ void ModifyRoomValues(IConfigurationSection section)
         ValueReplacer(roomToModify, pair.Key, pair.Value, nonModifiableProperties);
 
     // TODO
-    //roomToModify.Flags
+    if (section["Flags"] is null or "") return;
+    
+    roomToModify.Flags = 0;
+
+    if (section["Flags"]!.Contains("EnableViews"))
+        roomToModify.Flags |= UndertaleRoom.RoomEntryFlags.EnableViews;
+
+    if (section["Flags"]!.Contains("ShowColor"))
+        roomToModify.Flags |= UndertaleRoom.RoomEntryFlags.ShowColor;
+
+    if (section["Flags"]!.Contains("ClearDisplayBuffer"))
+        roomToModify.Flags |= UndertaleRoom.RoomEntryFlags.ClearDisplayBuffer;
+
+    if (section["Flags"]!.Contains("IsGMS2_3"))
+        roomToModify.Flags |= UndertaleRoom.RoomEntryFlags.IsGMS2_3;
+
+    if (section["Flags"]!.Contains("IsGMS2"))
+        roomToModify.Flags |= UndertaleRoom.RoomEntryFlags.IsGMS2;
 }
 
 /*
