@@ -474,8 +474,9 @@ void ReplaceSprite(IConfigurationSection section)
     };
     foreach (var pair in section.GetChildren())
         ValueReplacer(spriteToReplace, pair.Key, pair.Value, nonModifiableProperties);
-
-    //spriteToReplace.CollisionMasks = section["collisionMasks"] is not null ? gameData.Sprites.First(x => x.Name.Content == section["collisionMasks"]).CollisionMasks : spriteToReplace.CollisionMasks;
+    
+    // TODO
+    //spriteToReplace.CollisionMasks
 }
 
 void ModifyRoomValues(IConfigurationSection section)
@@ -509,7 +510,6 @@ void ModifyRoomValues(IConfigurationSection section)
     foreach (var pair in section.GetChildren())
         ValueReplacer(roomToModify, pair.Key, pair.Value, nonModifiableProperties);
 
-    // TODO
     if (section["Flags"] is null or "") return;
     
     roomToModify.Flags = 0;
@@ -530,12 +530,14 @@ void ModifyRoomValues(IConfigurationSection section)
         roomToModify.Flags |= UndertaleRoom.RoomEntryFlags.IsGMS2;
 }
 
-/*
-void ReplaceRoomBackgrounds()
+void ReplaceRoomBackgrounds(IConfigurationSection section)
 {
+    string roomName = section.Key;
 
+    gameData.Rooms[0].Backgrounds
 }
 
+/*
 void ModifyInstances()
 {
 
