@@ -530,11 +530,19 @@ void ModifyRoomValues(IConfigurationSection section)
         roomToModify.Flags |= UndertaleRoom.RoomEntryFlags.IsGMS2;
 }
 
-void ReplaceRoomBackgrounds(IConfigurationSection section)
+void ReplaceRoomBackgrounds(string roomName, IConfigurationSection section)
 {
-    string roomName = section.Key;
+    var roomToModify = gameData.Rooms.FirstOrDefault((x => x!.Name.Content == roomName), null);
 
-    gameData.Rooms[0].Backgrounds
+    if (roomToModify is null)
+    {
+        Console.WriteLine($"Room {roomName} not found, skipping.");
+        return;
+    }
+
+    string backgroundName = section.Key;
+
+    var backgroundToModify = roomToModify.Backgrounds.FirstOrDefault((x => x == backgroundName), null);
 }
 
 /*
