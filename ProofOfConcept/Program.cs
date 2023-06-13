@@ -252,6 +252,7 @@ bool IsAssetUnavailable(Type assetType, string assetName, string? property = nul
     return isUnavailable;
 }
 
+void NamedValueReplacer(UndertaleNamedResource undertaleClass, string propertyName, string? value, string[]? nonModifiableProperties = null) =>
     ValueReplacer(undertaleClass, undertaleClass.Name.Content, propertyName, value, nonModifiableProperties);
 
 void ValueReplacer(UndertaleObject undertaleObject, string objectName, string propertyName, string? value, string[]? nonModifiableProperties = null)
