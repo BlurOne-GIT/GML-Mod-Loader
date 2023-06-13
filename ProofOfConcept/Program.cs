@@ -192,6 +192,19 @@ foreach (string folder in Directory.GetDirectories(modsFolder))
         }
     }
 
+    if (Directory.Exists($"{folder}/RoomBackgrounds"))
+    {
+        Console.WriteLine("Modifying room backgrounds...");
+        foreach (string roomIniPath in Directory.GetFiles($"{folder}/RoomBackgrounds").Where(x => x.EndsWith(".ini")))
+        {
+            string roomName = Path.GetFileNameWithoutExtension(roomIniPath);
+            Console.WriteLine($"Modifying room {roomName}");
+            var fileConfig = new ConfigurationBuilder().AddIniFile(roomIniPath).Build();
+            foreach (var section in fileConfig.GetChildren())
+                ModifyRoomBackground(roomName, section);
+        }
+    }
+
     if (Directory.Exists($"{folder}/ExternalAssets") && Path.Exists($"{folder}/ExternalAssets/externalAssets.ini"))
     {
         Console.WriteLine("Copying external assets...");
@@ -239,16 +252,18 @@ bool IsAssetUnavailable(Type assetType, string assetName, string? property = nul
     return isUnavailable;
 }
 
-void ValueReplacer(UndertaleNamedResource undertaleClass, string propertyName, string? value, string[]? nonModifiableProperties = null)
+    ValueReplacer(undertaleClass, undertaleClass.Name.Content, propertyName, value, nonModifiableProperties);
+
+void ValueReplacer(UndertaleObject undertaleObject, string objectName, string propertyName, string? value, string[]? nonModifiableProperties = null)
 {
-    if (IsAssetUnavailable(undertaleClass.GetType(), undertaleClass.Name.Content, propertyName) || value is null || value is "" || nonModifiableProperties?.Contains(value) == true)
+    if (IsAssetUnavailable(undertaleObject.GetType(), objectName, propertyName) || value is null || value is "" || nonModifiableProperties?.Contains(value) == true)
         return;
 
-    PropertyInfo? property = undertaleClass.GetType().GetProperty(propertyName);
+    PropertyInfo? property = undertaleObject.GetType().GetProperty(propertyName);
     
     if (property is null || !property.CanWrite)
     {
-        Console.WriteLine($"Property {propertyName} for type {undertaleClass.GetType()} (asset {undertaleClass.Name}) not found or not writable, skipping.");
+        Console.WriteLine($"Property {propertyName} for type {undertaleObject.GetType()} (asset {objectName}) not found or not writable, skipping.");
         return;
     }
 
@@ -264,22 +279,22 @@ void ValueReplacer(UndertaleNamedResource undertaleClass, string propertyName, s
             return;
         }
 
-        property.SetValue(undertaleClass, result);
-        Console.WriteLine($"Set property {propertyName} of asset {undertaleClass.Name} to {value}.");
+        property.SetValue(undertaleObject, result);
+        Console.WriteLine($"Set property {propertyName} of asset {objectName} to {value}.");
         return;
     }
 
     if (property.PropertyType == typeof(UndertaleString))
     {
-        property.SetValue(undertaleClass, gameData.Strings.MakeString(value));
-        Console.WriteLine($"Set property {propertyName} of asset {undertaleClass.Name} to {value}.");
+        property.SetValue(undertaleObject, gameData.Strings.MakeString(value));
+        Console.WriteLine($"Set property {propertyName} of asset {objectName} to {value}.");
         return;
     }
 
     try
     {
-        property.SetValue(undertaleClass, Convert.ChangeType(value, property.PropertyType));
-        Console.WriteLine($"Set property {propertyName} of asset {undertaleClass.Name} to {value}.");
+        property.SetValue(undertaleObject, Convert.ChangeType(value, property.PropertyType));
+        Console.WriteLine($"Set property {propertyName} of asset {objectName} to {value}.");
     }
     catch (Exception)
     {
@@ -337,7 +352,7 @@ void ReplaceCode(string codePath)
         "Name"
     };
     foreach (var pair in fileConfig.GetChildren())
-        ValueReplacer(codeToReplace, pair.Key, pair.Value, nonModifiableProperties);
+        NamedValueReplacer(codeToReplace, pair.Key, pair.Value, nonModifiableProperties);
 }
 
 void ReplaceTexture(string texturePath)
@@ -414,7 +429,7 @@ void ReplaceTexture(string texturePath)
             "Name"
         };
         foreach (var pair in fileConfig.GetChildren())
-            ValueReplacer(textureToReplace, pair.Key, pair.Value, nonModifiableProperties);
+            NamedValueReplacer(textureToReplace, pair.Key, pair.Value, nonModifiableProperties);
     }
 
     textureToReplace.ReplaceTexture(imageToUse);
@@ -473,7 +488,7 @@ void ReplaceSprite(IConfigurationSection section)
         "Name"
     };
     foreach (var pair in section.GetChildren())
-        ValueReplacer(spriteToReplace, pair.Key, pair.Value, nonModifiableProperties);
+        NamedValueReplacer(spriteToReplace, pair.Key, pair.Value, nonModifiableProperties);
     
     // TODO
     //spriteToReplace.CollisionMasks
@@ -508,7 +523,7 @@ void ModifyRoomValues(IConfigurationSection section)
         "Views"
     };
     foreach (var pair in section.GetChildren())
-        ValueReplacer(roomToModify, pair.Key, pair.Value, nonModifiableProperties);
+        NamedValueReplacer(roomToModify, pair.Key, pair.Value, nonModifiableProperties);
 
     if (section["Flags"] is null or "") return;
     
@@ -530,9 +545,11 @@ void ModifyRoomValues(IConfigurationSection section)
         roomToModify.Flags |= UndertaleRoom.RoomEntryFlags.IsGMS2;
 }
 
-/*
-void ReplaceRoomBackgrounds(string roomName, IConfigurationSection section)
+void ModifyRoomBackground(string roomName, IConfigurationSection section)
 {
+    if (IsAssetUnavailable(typeof(UndertaleRoom), roomName))
+        return;
+
     var roomToModify = gameData.Rooms.FirstOrDefault((x => x!.Name.Content == roomName), null);
 
     if (roomToModify is null)
@@ -541,11 +558,29 @@ void ReplaceRoomBackgrounds(string roomName, IConfigurationSection section)
         return;
     }
 
-    string backgroundName = section.Key;
+    string layerName = section.Key;
 
-    var backgroundToModify = roomToModify.Backgrounds.FirstOrDefault((x => x == backgroundName), null);
+    var layerOfBackground = roomToModify.Layers.FirstOrDefault((x => x!.LayerName.Content == layerName), null);
+    
+    if (layerOfBackground is null || layerOfBackground.LayerType is not UndertaleRoom.LayerType.Background)
+    {
+        Console.WriteLine($"Layer of type background {layerName} not found, skipping.");
+        return;
+    }
+
+    string[] nonModifiableProperties = {
+        "Color",
+        "ParentLayer"
+    };
+    foreach (var pair in section.GetChildren())
+        ValueReplacer(layerOfBackground.BackgroundData, layerName, pair.Key, pair.Value, nonModifiableProperties);
+
+    if (section["Color"] is null or "") return;
+
+    layerOfBackground.BackgroundData.Color = Convert.ToUInt32(section["Color"]!, 16);
 }
 
+/*
 void ModifyInstances()
 {
 
@@ -598,27 +633,7 @@ void ModifyObject(IConfigurationSection section)
     };
 
     foreach (var pair in section.GetChildren())
-        ValueReplacer(objectToModify, pair.Key, pair.Value, nonModifiableProperties);
-
-    /*
-    objectToModify.Sprite = section["sprite"] is not null ? gameData.Sprites.First(x => x.Name.Content == section["sprite"]) : objectToModify.Sprite;
-    objectToModify.Visible = section["visible"] is not null ? Convert.ToBoolean(section["visible"]) : objectToModify.Visible;
-    objectToModify.Solid = section["solid"] is not null ? Convert.ToBoolean(section["solid"]) : objectToModify.Solid;
-    objectToModify.Persistent = section["persistent"] is not null ? Convert.ToBoolean(section["persistent"]) : objectToModify.Persistent;
-    objectToModify.ParentId = section["parentId"] is not null ? gameData.GameObjects.First(x => x.Name.Content == section["parentId"]) : objectToModify.ParentId;
-    objectToModify.TextureMaskId = section["textureMaskId"] is not null ? gameData.Sprites.First(x => x.Name.Content == section["textureMaskId"]) : objectToModify.TextureMaskId;
-    objectToModify.UsesPhysics = section["usesPhysics"] is not null ? Convert.ToBoolean(section["usesPhysics"]) : objectToModify.UsesPhysics;
-    objectToModify.IsSensor = section["isSensor"] is not null ? Convert.ToBoolean(section["isSensor"]) : objectToModify.IsSensor;
-    objectToModify.CollisionShape = section["collisionShape"] is not null ? (CollisionShapeFlags)Convert.ToUInt16(section["collisionShape"]) : objectToModify.CollisionShape;
-    objectToModify.Density = section["density"] is not null ? Convert.ToSingle(section["density"]) : objectToModify.Density;
-    objectToModify.Restitution = section["restitution"] is not null ? Convert.ToSingle(section["restitution"]) : objectToModify.Restitution;
-    objectToModify.Group = section["group"] is not null ? Convert.ToUInt32(section["group"]) : objectToModify.Group;
-    objectToModify.LinearDamping = section["linearDamping"] is not null ? Convert.ToSingle(section["linearDamping"]) : objectToModify.LinearDamping;
-    objectToModify.AngularDamping = section["angularDamping"] is not null ? Convert.ToSingle(section["angularDamping"]) : objectToModify.AngularDamping;
-    objectToModify.Friction = section["friction"] is not null ? Convert.ToSingle(section["friction"]) : objectToModify.Friction;
-    objectToModify.Awake = section["isAwake"] is not null ? Convert.ToBoolean(section["isAwake"]) : objectToModify.Awake;
-    objectToModify.Kinematic = section["isKinematic"] is not null ? Convert.ToBoolean(section["isKinematic"]) : objectToModify.Kinematic;
-    */
+        NamedValueReplacer(objectToModify, pair.Key, pair.Value, nonModifiableProperties);
 }
 
 void ModifyObjectPhysicsShapeVertices(string objectName, IConfigurationSection section, bool isRemove)
