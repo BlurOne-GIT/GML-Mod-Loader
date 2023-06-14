@@ -645,12 +645,12 @@ void ModifyRoomTiles(string roomName, IConfigurationSection section)
     // TODO: Copy TileDataImport_Click method from UndertaleModTool UndertaleRoomEditor.xaml.cs    
 }
 
-/*
-void ModifyInstances()
+void ModifyRoomInstances()
 {
-
+    
 }
 
+/*
 void ModifyRoomLayers()
 {
 
