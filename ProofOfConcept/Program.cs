@@ -566,6 +566,7 @@ void ModifyRoomBackground(string roomName, IConfigurationSection section)
     if (layerOfBackground is null || layerOfBackground.LayerType is not UndertaleRoom.LayerType.Background)
     {
         Console.WriteLine($"Layer of type background {layerName} not found, skipping.");
+        // TODO: Copy AddLayer function from UndertaleModTool UndertaleRoomEditor.xaml.cs
         return;
     }
 
@@ -581,6 +582,69 @@ void ModifyRoomBackground(string roomName, IConfigurationSection section)
     layerOfBackground.BackgroundData.Color = Convert.ToUInt32(section["Color"]!, 16);
 }
 
+void ModifyRoomView(string roomName, IConfigurationSection section)
+{
+    if (IsAssetUnavailable(typeof(UndertaleRoom), roomName))
+        return;
+
+    var roomToModify = gameData.Rooms.FirstOrDefault((x => x!.Name.Content == roomName), null);
+
+    if (roomToModify is null)
+    {
+        Console.WriteLine($"Room {roomName} not found, skipping.");
+        return;
+    }
+
+    int viewIndex = Convert.ToInt32(section.Key);
+
+    var viewToModify = roomToModify.Views[viewIndex];
+    
+    if (viewToModify is null)
+    {
+        Console.WriteLine($"View {viewIndex} not found, skipping.");
+        return;
+    }
+
+    foreach (var pair in section.GetChildren())
+        ValueReplacer(viewToModify, $"{viewIndex}", pair.Key, pair.Value);
+}
+
+void ModifyRoomTiles(string roomName, IConfigurationSection section)
+{
+    if (IsAssetUnavailable(typeof(UndertaleRoom), roomName))
+        return;
+
+    var roomToModify = gameData.Rooms.FirstOrDefault((x => x!.Name.Content == roomName), null);
+
+    if (roomToModify is null)
+    {
+        Console.WriteLine($"Room {roomName} not found, skipping.");
+        return;
+    }
+
+    string layerName = section.Key;
+
+    var layerOfTiles = roomToModify.Layers.FirstOrDefault((x => x!.LayerName.Content == layerName), null);
+    
+    if (layerOfTiles is null || layerOfTiles.LayerType is not UndertaleRoom.LayerType.Tiles)
+    {
+        Console.WriteLine($"Layer of type tiles {layerName} not found, skipping.");
+        // TODO: Copy AddLayer method from UndertaleModTool UndertaleRoomEditor.xaml.cs
+        return;
+    }
+
+    string[] nonModifiableProperties = {
+        "ParentLayer",
+        "TileData"
+    };
+    foreach (var pair in section.GetChildren())
+        ValueReplacer(layerOfTiles.TilesData, layerName, pair.Key, pair.Value, nonModifiableProperties);
+
+    if (section["TileData"] is null or "") return;
+
+    // TODO: Copy TileDataImport_Click method from UndertaleModTool UndertaleRoomEditor.xaml.cs    
+}
+
 /*
 void ModifyInstances()
 {
@@ -593,16 +657,6 @@ void ModifyRoomLayers()
 }
 
 void ModifyRoomSequences()
-{
-
-}
-
-void ReplaceTiles()
-{
-    
-}
-
-void ModifyViews()
 {
 
 }
