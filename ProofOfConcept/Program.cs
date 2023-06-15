@@ -24,9 +24,7 @@ int modPriority;
 string modName;
 bool multiplePropertyReplacement = Convert.ToBoolean(loaderConfig["multiplePropertyReplacement"]);
 
-Dictionary<string, int> moddedCodes = new Dictionary<string, int>();
-Dictionary<string, int> moddedSprites = new Dictionary<string, int>();
-Dictionary<string, int> moddedScripts = new Dictionary<string, int>();
+Dictionary<string, uint> newObjectsIndexes = new Dictionary<string, uint>();
 List<ReplacedAssetInfo> replacedAssets = new List<ReplacedAssetInfo>();
 
 string[] forbiddenFiles = {"data.win"};
@@ -645,20 +643,95 @@ void ModifyRoomTiles(string roomName, IConfigurationSection section)
     // TODO: Copy TileDataImport_Click method from UndertaleModTool UndertaleRoomEditor.xaml.cs    
 }
 
-void ModifyRoomInstances()
+void ModifyRoomInstances(string roomName, IConfigurationSection section)
 {
+    if (IsAssetUnavailable(typeof(UndertaleRoom), roomName))
+        return;
+
+    var roomToModify = gameData.Rooms.FirstOrDefault((x => x!.Name.Content == roomName), null);
+
+    if (roomToModify is null)
+    {
+        Console.WriteLine($"Room {roomName} not found, skipping.");
+        return;
+    }
+
+    uint instanceId;
+    bool createNewIfFound = false;
+
+    try
+    {
+        instanceId = Convert.ToUInt32(section.Key);
+    } catch
+    {
+        createNewIfFound = !newObjectsIndexes.TryGetValue(section.Key, out instanceId);
+    }
+
+    var instanceToModify = roomToModify.GameObjects.FirstOrDefault((x => x!.InstanceID == instanceId), null);
     
+    if (instanceToModify is null || createNewIfFound)
+    {
+        Console.WriteLine($"Instance {section.Key} ({instanceId}) not found, creating a new one.");
+        
+        uint layerId;
+        
+        if (section["#layer"] is null or "" || uint.TryParse(section["#layer"]!, out layerId))
+        {
+            Console.WriteLine($"New instance {section.Key} ({instanceId}) has no layer, skipping.");
+            return;
+        }      
+
+        instanceToModify = new() {
+            InstanceID = gameData.GeneralInfo.LastObj++
+        };
+        roomToModify.GameObjects.Add(instanceToModify);
+
+        if (gameData.IsGameMaker2())
+            roomToModify.Layers.FirstOrDefault((x => x!.LayerId == layerId), null)?.InstancesData.Instances.Add(instanceToModify);
+    
+        newObjectsIndexes.Add(section.Key, instanceToModify.InstanceID);
+    }
+
+    string[] nonModifiableProperties = {
+        "InstanceID"
+    };
+    foreach (var pair in section.GetChildren())
+        ValueReplacer(instanceToModify, $"{instanceId}", pair.Key, pair.Value, nonModifiableProperties);
 }
 
-/*
-void ModifyRoomLayers()
+void ModifyRoomLayers(IConfigurationSection section)
 {
+    string roomName = section.Key;
 
+    var roomToModify = gameData.Rooms.FirstOrDefault((x => x!.Name.Content == roomName), null);
+
+    if (roomToModify is null)
+    {
+        Console.WriteLine($"Room {roomName} not found, skipping.");
+        return;
+    }
+
+    string[] nonModifiableProperties = {
+        "EffectData",
+        "AssetsData",
+        "BackgroundData",
+        "TilesData",
+        "InstancesData",
+        "Data",
+        "LayerType",
+        "LayerId",
+        "LayerName",
+        "ParentRoom",
+        "EffectProperties"
+    };
+    foreach (var pair in section.GetChildren())
+        ValueReplacer(roomToModify, roomName, pair.Key, pair.Value, nonModifiableProperties);
 }
 
+/* TODO
 void ModifyRoomSequences()
 {
-
+    gameData.Sequences
 }
 */
 
