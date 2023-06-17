@@ -788,9 +788,9 @@ void ModifyObjectPhysicsShapeVertices(string objectName, IConfigurationSection s
 
 void ModifyObjectEvents(string objectName, IConfigurationRoot section, bool isRemove)
 {
-    var objectWhosEventsAreWishedToBeModified = gameData.GameObjects.First(x => x.Name.Content == objectName);
+    var objectToModify = gameData.GameObjects.First(x => x.Name.Content == objectName);
 
-    if (objectWhosEventsAreWishedToBeModified is null)
+    if (objectToModify is null)
     {
         Console.WriteLine($"Object {objectName} not found, skipping object, pain head.");
         return;
@@ -798,7 +798,7 @@ void ModifyObjectEvents(string objectName, IConfigurationRoot section, bool isRe
 
     foreach (var eventSection in section.GetChildren())
     {
-        var eventToModify = objectWhosEventsAreWishedToBeModified.Events[Convert.ToInt32(eventSection.Key)];
+        var eventToModify = objectToModify.Events[Convert.ToInt32(eventSection.Key)];
 
         if (eventToModify is null)
         {
