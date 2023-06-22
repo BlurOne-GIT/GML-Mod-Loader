@@ -3,6 +3,7 @@ using System.Linq;
 using UndertaleModLib;
 using UndertaleModLib.Models;
 using UndertaleModLib.Decompiler;
+using UndertaleModLib.Util;
 #endregion
 
 #region Fields
@@ -50,6 +51,29 @@ if (ogGameData.Code.Count < moddedGameData.Code.Count)
             Console.WriteLine("Exporting " + moddedGameData.Code[i].Name.Content + ".asm...");
             Scripts.ExportASM(moddedGameData.Code[i]);
         }
+#endregion
+
+#region Textures
+// Sprites
+TextureWorker worker = new();
+for (int i = 0; i < ogGameData.Sprites.Count; i++)
+{
+    if (ogGameData.Sprites[i].Textures.Count == moddedGameData.Sprites[i].Textures.Count)
+    {
+        bool allEqual = true;
+        for (int j = 0; j < ogGameData.Sprites[i].Textures.Count; j++)
+            if (worker.GetTextureFor(ogGameData.Sprites[i].Textures[j].Texture, "").Equals(worker.GetTextureFor(moddedGameData.Sprites[i].Textures[j].Texture, "")))
+            {
+                allEqual = false;
+                break;
+            }
+        if (allEqual)
+            continue;
+    }
+
+    Console.WriteLine("Exporting " + moddedGameData.Sprites[i].Name.Content + "...");
+    Scripts.DumpSprite(moddedGameData.Sprites[i]);
+}
 #endregion
 
 Console.WriteLine("Done!");
