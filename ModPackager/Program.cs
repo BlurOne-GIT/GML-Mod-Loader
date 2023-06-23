@@ -44,13 +44,12 @@ for (int i = 0; i < ogGameData.Code.Count; i++)
     //Scripts.ExportASM(moddedGameData.Code[i]);
     Scripts.ExportASM(moddedAsm, moddedGameData.Code[i].Name.Content);
 }
-if (ogGameData.Code.Count < moddedGameData.Code.Count)
-    for (int i = ogGameData.Code.Count; i < moddedGameData.Code.Count; i++)
-        if (moddedGameData.Code[i].ParentEntry is null)
-        {
-            Console.WriteLine("Exporting " + moddedGameData.Code[i].Name.Content + ".asm...");
-            Scripts.ExportASM(moddedGameData.Code[i]);
-        }
+for (int i = ogGameData.Code.Count; i < moddedGameData.Code.Count; i++)
+    if (moddedGameData.Code[i].ParentEntry is null)
+    {
+        Console.WriteLine("Exporting " + moddedGameData.Code[i].Name.Content + ".asm...");
+        Scripts.ExportASM(moddedGameData.Code[i]);
+    }
 #endregion
 
 #region Textures
@@ -73,6 +72,41 @@ for (int i = 0; i < ogGameData.Sprites.Count; i++)
 
     Console.WriteLine("Exporting " + moddedGameData.Sprites[i].Name.Content + "...");
     Scripts.DumpSprite(moddedGameData.Sprites[i]);
+}
+for (int i = ogGameData.Sprites.Count; i < moddedGameData.Sprites.Count; i++)
+{
+    Console.WriteLine("Exporting " + moddedGameData.Sprites[i].Name.Content + "...");
+    Scripts.DumpSprite(moddedGameData.Sprites[i]);
+}
+
+// Fonts
+for (int i = 0; i < ogGameData.Fonts.Count; i++)
+{
+    if (worker.GetTextureFor(ogGameData.Fonts[i].Texture, "").Equals(worker.GetTextureFor(moddedGameData.Fonts[i].Texture, "")))
+        continue;
+    
+    Console.WriteLine("Exporting " + moddedGameData.Fonts[i].Name.Content + "...");
+    Scripts.DumpFont(moddedGameData.Fonts[i]);
+}
+for (int i = ogGameData.Fonts.Count; i < moddedGameData.Fonts.Count; i++)
+{
+    Console.WriteLine("Exporting " + moddedGameData.Fonts[i].Name.Content + "...");
+    Scripts.DumpFont(moddedGameData.Fonts[i]);
+}
+
+// Backgrounds
+for (int i = 0; i < ogGameData.Backgrounds.Count; i++)
+{
+    if (worker.GetTextureFor(ogGameData.Backgrounds[i].Texture, "").Equals(worker.GetTextureFor(moddedGameData.Backgrounds[i].Texture, "")))
+        continue;
+    
+    Console.WriteLine("Exporting " + moddedGameData.Backgrounds[i].Name.Content + "...");
+    Scripts.DumpBackground(moddedGameData.Backgrounds[i]);
+}
+for (int i = ogGameData.Backgrounds.Count; i < moddedGameData.Backgrounds.Count; i++)
+{
+    Console.WriteLine("Exporting " + moddedGameData.Backgrounds[i].Name.Content + "...");
+    Scripts.DumpBackground(moddedGameData.Backgrounds[i]);
 }
 #endregion
 
