@@ -57,31 +57,32 @@ for (int i = ogGameData.Code.Count; i < moddedGameData.Code.Count; i++)
 TextureWorker worker = new();
 for (int i = 0; i < ogGameData.Sprites.Count; i++)
 {
-    /*
-    bool export = ogGameData.Sprites[i].Textures.Count != moddedGameData.Sprites[i].Textures.Count 
-        || ogGameData.Sprites[i].Width != moddedGameData.Sprites[i].Width
-        || ogGameData.Sprites[i].Height != moddedGameData.Sprites[i].Height
-        || ogGameData.Sprites[i].MarginBottom != moddedGameData.Sprites[i].MarginBottom
-        || ogGameData.Sprites[i].MarginLeft != moddedGameData.Sprites[i].MarginLeft
-        || ogGameData.Sprites[i].MarginRight != moddedGameData.Sprites[i].MarginRight
-        || ogGameData.Sprites[i].MarginTop != moddedGameData.Sprites[i].MarginTop
-        || ogGameData.Sprites[i].OriginXWrapper
-    */
+    string[] properites = {
+        "Width",
+        "Height",
+        "MarginBottom",
+        "MarginLeft",
+        "MarginRight",
+        "MarginTop",
+        "OriginXWrapper",
+        "OriginYWrapper"
+    };
+    bool export = ogGameData.Sprites[i].Textures.Count != moddedGameData.Sprites[i].Textures.Count || Scripts.SimpleValuesComp<UndertaleSprite>(ogGameData.Sprites[i], moddedGameData.Sprites[i], properites);
 
-    if (ogGameData.Sprites[i].Textures.Count == moddedGameData.Sprites[i].Textures.Count && ogGameData.Sprites[i].Width == moddedGameData.Sprites[i].Width && ogGameData.Sprites[i].Height == moddedGameData.Sprites[i].Height)
+    if (!export)
     {
-        bool allEqual = true;
         for (int j = 0; j < ogGameData.Sprites[i].Textures.Count; j++)
         {
+            var ogTexture = TextureWorker.GetImageBytes(worker.GetTextureFor(ogGameData.Sprites[i].Textures[j].Texture, ""));
+            var moddedTexture = TextureWorker.GetImageBytes(worker.GetTextureFor(moddedGameData.Sprites[i].Textures[j].Texture, ""));
 
-
-            if (worker.GetTextureFor(ogGameData.Sprites[i].Textures[j].Texture, "").Equals(worker.GetTextureFor(moddedGameData.Sprites[i].Textures[j].Texture, "")))
+            if (!ogTexture.SequenceEqual(moddedTexture))
             {
-                allEqual = false;
+                export = true;
                 break;
             }
         }
-        if (allEqual)
+        if (!export)
             continue;
     }
 

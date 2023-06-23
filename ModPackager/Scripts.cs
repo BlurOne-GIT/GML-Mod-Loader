@@ -90,11 +90,13 @@ public static class Scripts
         foreach (string propertyName in propertiesToCompare)
         {
             var propertyToCompare = typeof(T).GetProperty(propertyName);
-            if (propertiesToCompare is null)
+            if (propertyToCompare is null)
                 throw new NullReferenceException($"Property {propertyName} not found.");
 
             if (propertyToCompare.GetValue(ogNamedResource) != propertyToCompare.GetValue(moddedNamedResource))
                 return true;
         }
+
+        return false;
     } 
 }
