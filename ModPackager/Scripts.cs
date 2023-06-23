@@ -1,3 +1,4 @@
+using System.Reflection;
 using UndertaleModLib;
 using UndertaleModLib.Models;
 using UndertaleModLib.Decompiler;
@@ -79,4 +80,21 @@ public static class Scripts
         worker.ExportAsPNG(tex, Path.Combine(bgrFolder2, background.Name.Content + "_0.png"));
     }
     #endregion
+
+    // I hate the default .Equals() returning whether they are the same instance or not instead of comparing the class's values
+    public static bool SimpleValuesComp<T>(T ogNamedResource, T moddedNamedResource, string[] propertiesToCompare)
+    {
+        if (ogNamedResource is null || moddedNamedResource is null)
+            throw new NullReferenceException();
+
+        foreach (string propertyName in propertiesToCompare)
+        {
+            var propertyToCompare = typeof(T).GetProperty(propertyName);
+            if (propertiesToCompare is null)
+                throw new NullReferenceException($"Property {propertyName} not found.");
+
+            if (propertyToCompare.GetValue(ogNamedResource) != propertyToCompare.GetValue(moddedNamedResource))
+                return true;
+        }
+    } 
 }

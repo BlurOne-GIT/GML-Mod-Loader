@@ -57,15 +57,30 @@ for (int i = ogGameData.Code.Count; i < moddedGameData.Code.Count; i++)
 TextureWorker worker = new();
 for (int i = 0; i < ogGameData.Sprites.Count; i++)
 {
-    if (ogGameData.Sprites[i].Textures.Count == moddedGameData.Sprites[i].Textures.Count)
+    /*
+    bool export = ogGameData.Sprites[i].Textures.Count != moddedGameData.Sprites[i].Textures.Count 
+        || ogGameData.Sprites[i].Width != moddedGameData.Sprites[i].Width
+        || ogGameData.Sprites[i].Height != moddedGameData.Sprites[i].Height
+        || ogGameData.Sprites[i].MarginBottom != moddedGameData.Sprites[i].MarginBottom
+        || ogGameData.Sprites[i].MarginLeft != moddedGameData.Sprites[i].MarginLeft
+        || ogGameData.Sprites[i].MarginRight != moddedGameData.Sprites[i].MarginRight
+        || ogGameData.Sprites[i].MarginTop != moddedGameData.Sprites[i].MarginTop
+        || ogGameData.Sprites[i].OriginXWrapper
+    */
+
+    if (ogGameData.Sprites[i].Textures.Count == moddedGameData.Sprites[i].Textures.Count && ogGameData.Sprites[i].Width == moddedGameData.Sprites[i].Width && ogGameData.Sprites[i].Height == moddedGameData.Sprites[i].Height)
     {
         bool allEqual = true;
         for (int j = 0; j < ogGameData.Sprites[i].Textures.Count; j++)
+        {
+
+
             if (worker.GetTextureFor(ogGameData.Sprites[i].Textures[j].Texture, "").Equals(worker.GetTextureFor(moddedGameData.Sprites[i].Textures[j].Texture, "")))
             {
                 allEqual = false;
                 break;
             }
+        }
         if (allEqual)
             continue;
     }
