@@ -53,30 +53,35 @@ for (int i = ogGameData.Code.Count; i < moddedGameData.Code.Count; i++)
 #endregion
 
 #region Textures
-// Sprites
 TextureWorker worker = new();
+Dictionary<string, bool> checkedPages = new(); // OIA momento
+// Sprites
+Console.WriteLine("Exporting sprite textures...");
 for (int i = 0; i < ogGameData.Sprites.Count; i++)
 {
-    string[] properites = {
-        "Width",
-        "Height",
-        "MarginBottom",
-        "MarginLeft",
-        "MarginRight",
-        "MarginTop",
-        "OriginXWrapper",
-        "OriginYWrapper"
-    };
-    bool export = ogGameData.Sprites[i].Textures.Count != moddedGameData.Sprites[i].Textures.Count || Scripts.SimpleValuesComp<UndertaleSprite>(ogGameData.Sprites[i], moddedGameData.Sprites[i], properites);
-
-    if (!export)
+    if (ogGameData.Sprites[i].Textures.Count == moddedGameData.Sprites[i].Textures.Count)
     {
+        bool export = false;
         for (int j = 0; j < ogGameData.Sprites[i].Textures.Count; j++)
         {
-            var ogTexture = TextureWorker.GetImageBytes(worker.GetTextureFor(ogGameData.Sprites[i].Textures[j].Texture, ""));
-            var moddedTexture = TextureWorker.GetImageBytes(worker.GetTextureFor(moddedGameData.Sprites[i].Textures[j].Texture, ""));
+            var ogTexture = ogGameData.Sprites[i].Textures[j].Texture;
+            var moddedTexture = moddedGameData.Sprites[i].Textures[j].Texture;
 
-            if (!ogTexture.SequenceEqual(moddedTexture))
+            if (ogTexture.TexturePage.Name.Content != moddedTexture.TexturePage.Name.Content)
+            {
+                export = true;
+                break;
+            }
+
+            if (!checkedPages.ContainsKey(moddedTexture.TexturePage.Name.Content))
+            {
+                // TODO: compare pages
+            }
+
+            if (checkedPages[moddedTexture.TexturePage.Name.Content])
+                break;
+
+            if (!Scripts.TextureEquals(ogTexture, moddedTexture))
             {
                 export = true;
                 break;
@@ -96,9 +101,10 @@ for (int i = ogGameData.Sprites.Count; i < moddedGameData.Sprites.Count; i++)
 }
 
 // Fonts
+Console.WriteLine("Exporting font textures...");
 for (int i = 0; i < ogGameData.Fonts.Count; i++)
 {
-    if (worker.GetTextureFor(ogGameData.Fonts[i].Texture, "").Equals(worker.GetTextureFor(moddedGameData.Fonts[i].Texture, "")))
+    if (Scripts.TextureEquals(ogGameData.Fonts[i].Texture, moddedGameData.Fonts[i].Texture))
         continue;
     
     Console.WriteLine("Exporting " + moddedGameData.Fonts[i].Name.Content + "...");
@@ -111,9 +117,10 @@ for (int i = ogGameData.Fonts.Count; i < moddedGameData.Fonts.Count; i++)
 }
 
 // Backgrounds
+Console.WriteLine("Exporting background textures...");
 for (int i = 0; i < ogGameData.Backgrounds.Count; i++)
 {
-    if (worker.GetTextureFor(ogGameData.Backgrounds[i].Texture, "").Equals(worker.GetTextureFor(moddedGameData.Backgrounds[i].Texture, "")))
+    if (Scripts.TextureEquals(ogGameData.Backgrounds[i].Texture, moddedGameData.Backgrounds[i].Texture))
         continue;
     
     Console.WriteLine("Exporting " + moddedGameData.Backgrounds[i].Name.Content + "...");
@@ -128,5 +135,4 @@ for (int i = ogGameData.Backgrounds.Count; i < moddedGameData.Backgrounds.Count;
 
 Console.WriteLine("Done!");
 Console.ReadKey();
-
 #endregion

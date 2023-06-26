@@ -3,6 +3,8 @@ using UndertaleModLib;
 using UndertaleModLib.Models;
 using UndertaleModLib.Decompiler;
 using UndertaleModLib.Util;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 public static class Scripts
 {
@@ -81,8 +83,9 @@ public static class Scripts
     }
     #endregion
 
+    #region Helpers
     // I hate the default .Equals() returning whether they are the same instance or not instead of comparing the class's values
-    public static bool SimpleValuesComp<T>(T ogNamedResource, T moddedNamedResource, string[] propertiesToCompare)
+    public static bool PropertiesEquals<T>(T ogNamedResource, T moddedNamedResource, string[] propertiesToCompare)
     {
         if (ogNamedResource is null || moddedNamedResource is null)
             throw new NullReferenceException();
@@ -94,9 +97,38 @@ public static class Scripts
                 throw new NullReferenceException($"Property {propertyName} not found.");
 
             if (propertyToCompare.GetValue(ogNamedResource) != propertyToCompare.GetValue(moddedNamedResource))
-                return true;
+                return false;
         }
 
-        return false;
-    } 
+        return true;
+    }
+
+    public static bool TextureEquals(UndertaleTexturePageItem ogTexture, UndertaleTexturePageItem moddedTexture)
+    {
+        var worker = new TextureWorker();
+        var ogTextureImage = worker.GetTextureFor(ogTexture, "");
+        var moddedTextureImage = worker.GetTextureFor(moddedTexture, moddedTexture.Name.Content);
+
+        return ImageEquals(ogTextureImage, moddedTextureImage);
+    }
+
+    public static bool ImageEquals(Image ogImage, Image moddedImage)
+    {
+        var ogImageData = GetImageBytes(ogImage);
+        var moddedImageData = GetImageBytes(moddedImage);
+
+        return ogImageData.SequenceEqual(moddedImageData);
+    }
+    // Modified version of TextureWorker.GetImageBytes()
+    private static byte[] GetImageBytes(Image image, bool disposeImage = true)
+    {
+        using (var ms = new MemoryStream())
+        {
+            image.Save(ms, ImageFormat.Png);
+            if (disposeImage)
+                image.Dispose();
+            return ms.ToArray();
+        }
+    }
+    #endregion
 }
