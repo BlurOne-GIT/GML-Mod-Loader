@@ -63,23 +63,22 @@ Dictionary<string, bool> checkedPages = new(); // OIA momento
 #region Sprites
 Console.WriteLine("Exporting sprite textures...");
 var spritesProgressBar = new ProgressBar(moddedGameData.Sprites.Count-1);
+var texturesProgressBar = new ProgressBar(0);
 for (int i = 0; i < ogGameData.Sprites.Count; i++)
 {
     spritesProgressBar.UpdateProgress(i);
     if (ogGameData.Sprites[i].Textures.Count == moddedGameData.Sprites[i].Textures.Count)
     {
-        bool export = false;
+        texturesProgressBar.Total = ogGameData.Sprites[i].Textures.Count;
         for (int j = 0; j < ogGameData.Sprites[i].Textures.Count; j++)
         {
+            texturesProgressBar.UpdateProgress(j);
             var ogTexture = ogGameData.Sprites[i].Textures[j].Texture;
             var moddedTexture = moddedGameData.Sprites[i].Textures[j].Texture;
             string moddedTexturePageName = moddedTexture.TexturePage.Name.Content;
 
             if (ogTexture.TexturePage.Name.Content != moddedTexturePageName)
-            {
-                export = true;
                 break;
-            }
 
             if (!checkedPages.ContainsKey(moddedTexturePageName))
                 checkedPages[moddedTexturePageName] = ogTexture.TexturePage.TextureData.TextureBlob.SequenceEqual(moddedTexture.TexturePage.TextureData.TextureBlob);
@@ -89,17 +88,20 @@ for (int i = 0; i < ogGameData.Sprites.Count; i++)
 
             if (!Scripts.TextureEquals(ogTexture, moddedTexture))
             {
-                export = true;
-                break;
+                Console.WriteLine($"[{i}][{j}] Exporting {moddedGameData.Sprites[i].Name.Content}...");
+                Scripts.DumpSingleSpriteTexture(moddedGameData.Sprites[i], j);
             }
         }
-        if (!export)
-            continue;
+        continue;
     }
+    texturesProgressBar.Total = 1;
+    texturesProgressBar.UpdateProgress(1);
 
     Console.WriteLine($"[{i}] Exporting {moddedGameData.Sprites[i].Name.Content}...");
     Scripts.DumpSprite(moddedGameData.Sprites[i]);
 }
+texturesProgressBar.Total = 1;
+texturesProgressBar.UpdateProgress(1);
 for (int i = ogGameData.Sprites.Count; i < moddedGameData.Sprites.Count; i++)
 {
     Console.WriteLine($"[{i}] Exporting {moddedGameData.Sprites[i].Name.Content}...");

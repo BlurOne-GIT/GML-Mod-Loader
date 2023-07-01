@@ -18,7 +18,7 @@ public class ProgressBar
         Console.CursorTop = cursorTop;
         int progressWidth = 50;
         int filledWidth = (int)Math.Floor(progressWidth * (double)current / Total);
-        Console.Write("[" + new string('#', filledWidth) + new string('-', progressWidth - filledWidth) + "] " + current + "/" + Total);
+        Console.Write("[" + new string('#', filledWidth) + new string('-', progressWidth - filledWidth) + "] " + current + "/" + Total + "                     ");
         Console.CursorLeft = currentConsoleLeft;
         Console.CursorTop = currentConsoleTop;
     }

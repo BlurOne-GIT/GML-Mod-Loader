@@ -58,6 +58,18 @@ public static class Scripts
             }
     }
 
+    public static void DumpSingleSpriteTexture(UndertaleSprite sprite, int index)
+    {
+        TextureWorker worker = new();
+        if (sprite.Textures[index]?.Texture != null)
+        {
+            UndertaleTexturePageItem tex = sprite.Textures[index].Texture;
+            string sprFolder2 = Path.Combine(SpriteFolder, sprite.Name.Content);
+            Directory.CreateDirectory(sprFolder2);
+            worker.ExportAsPNG(tex, Path.Combine(sprFolder2, sprite.Name.Content + "_" + index + ".png"));
+        }
+    }
+
     public static void DumpFont(UndertaleFont font)
     {
         if (font.Texture is null)
