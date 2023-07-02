@@ -15,6 +15,7 @@ public static class Scripts
     private static string SpriteFolder { get => Path.Combine(TextureFolder, "Sprites"); }
     private static string FontFolder { get => Path.Combine(TextureFolder, "Fonts"); }
     private static string BackgroundFolder { get => Path.Combine(TextureFolder, "Backgrounds"); }
+    private static string FontDataFolder { get => Path.Combine(ExportFolder, "FontData"); }
     
 
     // Modified versions of the ExportASM.csx functions from UTMT
@@ -92,6 +93,23 @@ public static class Scripts
         string bgrFolder2 = Path.Combine(BackgroundFolder, background.Name.Content);
         Directory.CreateDirectory(bgrFolder2);
         worker.ExportAsPNG(tex, Path.Combine(bgrFolder2, background.Name.Content + "_0.png"));
+    }
+    #endregion
+
+    // Modified versions of the ExportAllFontData.csx functions from UTMT
+    #region ExportFontData.csx
+    public static void DumpFontData(UndertaleFont font)
+    {
+        if (!Directory.Exists(FontDataFolder))
+            Directory.CreateDirectory(FontDataFolder);
+
+        using (StreamWriter writer = new StreamWriter(Path.Combine(FontDataFolder, "glyphs_" + font.Name.Content + ".csv")))
+        {
+            writer.WriteLine(font.DisplayName + ";" + font.EmSize + ";" + font.Bold + ";" + font.Italic + ";" + font.Charset + ";" + font.AntiAliasing + ";" + font.ScaleX + ";" + font.ScaleY);
+
+            foreach (var g in font.Glyphs)
+                writer.WriteLine(g.Character + ";" + g.SourceX + ";" + g.SourceY + ";" + g.SourceWidth + ";" + g.SourceHeight + ";" + g.Shift + ";" + g.Offset);
+        }
     }
     #endregion
 

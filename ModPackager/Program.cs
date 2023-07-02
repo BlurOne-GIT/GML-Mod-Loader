@@ -182,6 +182,64 @@ Console.WriteLine();
 #endregion
 #endregion
 
+#region FontData
+Console.WriteLine("Exporting font data...");
+var fontDataProgressBar = new ProgressBar(moddedGameData.Fonts.Count-1);
+string[] properties = {
+    "EmSize",
+    "Bold",
+    "Italic",
+    "Charset",
+    "AntiAliasing",
+    "ScaleX",
+    "ScaleY"
+};
+string[] glyphProperties = {
+    "Character",
+    "SourceX",
+    "SourceY",
+    "SourceWidth",
+    "SourceHeight",
+    "Shift",
+    "Offset"
+};
+for (int i = 0; i < ogGameData.Fonts.Count; ++i)
+{
+    fontDataProgressBar.UpdateProgress(i);
+    
+    var ogFont = ogGameData.Fonts[i];
+    var moddedFont = moddedGameData.Fonts[i];
+
+    if (ogFont.DisplayName.Content == moddedFont.DisplayName.Content && Scripts.PropertiesEquals<UndertaleFont>(ogFont, moddedFont, properties))
+        continue;
+    
+    if (ogFont.Glyphs.Count == moddedFont.Glyphs.Count)
+    {
+        bool export = false;
+        for (int j = 0; j < ogFont.Glyphs.Count; ++j)
+        {
+            if (!Scripts.PropertiesEquals<UndertaleFont.Glyph>(ogFont.Glyphs[j], moddedFont.Glyphs[j], glyphProperties))
+            {
+                export = true;
+                break;
+            }
+        }
+        if (!export)
+            continue;
+    }
+
+    Console.WriteLine($"[{i}] Exporting {moddedFont.Name.Content}.csv...");
+    Scripts.DumpFontData(moddedFont);
+}
+for (int i = ogGameData.Fonts.Count; i < moddedGameData.Fonts.Count; ++i)
+{
+    Console.WriteLine($"[{i}] Exporting {moddedGameData.Fonts[i].Name.Content}.csv...");
+    Scripts.DumpFontData(moddedGameData.Fonts[i]);
+    fontDataProgressBar.UpdateProgress(i);
+}
+Console.WriteLine();
+#endregion
+
 Console.WriteLine("Done!");
 Console.ReadKey();
 #endregion
