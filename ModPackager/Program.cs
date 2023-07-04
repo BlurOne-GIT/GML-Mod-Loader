@@ -210,7 +210,7 @@ for (int i = 0; i < ogGameData.Fonts.Count; ++i)
     var ogFont = ogGameData.Fonts[i];
     var moddedFont = moddedGameData.Fonts[i];
 
-    if (ogFont.DisplayName.Content == moddedFont.DisplayName.Content && Scripts.PropertiesEquals<UndertaleFont>(ogFont, moddedFont, properties))
+    if (ogFont.DisplayName.Content == moddedFont.DisplayName.Content && Scripts.PropertiesEqual<UndertaleFont>(ogFont, moddedFont, properties))
         continue;
     
     if (ogFont.Glyphs.Count == moddedFont.Glyphs.Count)
@@ -218,7 +218,7 @@ for (int i = 0; i < ogGameData.Fonts.Count; ++i)
         bool export = false;
         for (int j = 0; j < ogFont.Glyphs.Count; ++j)
         {
-            if (!Scripts.PropertiesEquals<UndertaleFont.Glyph>(ogFont.Glyphs[j], moddedFont.Glyphs[j], glyphProperties))
+            if (!Scripts.PropertiesEqual<UndertaleFont.Glyph>(ogFont.Glyphs[j], moddedFont.Glyphs[j], glyphProperties))
             {
                 export = true;
                 break;

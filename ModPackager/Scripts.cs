@@ -115,7 +115,7 @@ public static class Scripts
 
     #region Helpers
     // I hate the default .Equals() returning whether they are the same instance or not instead of comparing the class's values
-    public static bool PropertiesEquals<T>(T ogNamedResource, T moddedNamedResource, string[] propertiesToCompare)
+    public static bool PropertiesEqual<T>(T ogNamedResource, T moddedNamedResource, string[] propertiesToCompare)
     {
         if (ogNamedResource is null || moddedNamedResource is null)
             throw new NullReferenceException();
@@ -126,7 +126,11 @@ public static class Scripts
             if (propertyToCompare is null)
                 throw new NullReferenceException($"Property {propertyName} not found.");
 
-            if (propertyToCompare.GetValue(ogNamedResource) != propertyToCompare.GetValue(moddedNamedResource))
+            object? ogValue = propertyToCompare.GetValue(ogNamedResource);
+            object? moddedValue = propertyToCompare.GetValue(moddedNamedResource);
+
+            // For some reason != doesn't work here
+            if (ogValue?.Equals(moddedValue) == false)
                 return false;
         }
 
