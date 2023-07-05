@@ -473,4 +473,7 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Custom
 ProofOfConcept/.vscode/launch.json
+Testing/

@@ -12,9 +12,9 @@
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/bin/Debug/net7.0/ModPackager.dll",
             "args": [
-                "A:/Programs/Steam/steamapps/common/Pizza Tower/data.win",
-                "A:/Programs/Steam/steamapps/common/Pizza Tower/test.win",
-                "A:/Downloads/mods/mod.gmmod/"
+                "../Testing/data.win",
+                "../Testing/test.win",
+                "../Testing/mods/test.gmmod"
             ],
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
