@@ -1,5 +1,6 @@
 public class ProgressBar
 {
+    private const int progressWidth = 50;
     public int Total { get; set; }
     private readonly int cursorTop;
     public ProgressBar(int total, int initial = 0)
@@ -16,8 +17,7 @@ public class ProgressBar
         int currentConsoleLeft = Console.CursorLeft;
         Console.CursorLeft = 0;
         Console.CursorTop = cursorTop;
-        int progressWidth = 50;
-        int filledWidth = (int)Math.Floor(progressWidth * (double)current / Total);
+        int filledWidth = Total is 0 ? progressWidth : (int)Math.Floor(progressWidth * (double)current / Total);
         Console.Write("[" + new string('#', filledWidth) + new string('-', progressWidth - filledWidth) + "] " + current + "/" + Total + "                     ");
         Console.CursorLeft = currentConsoleLeft;
         Console.CursorTop = currentConsoleTop;

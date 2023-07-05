@@ -100,8 +100,8 @@ for (int i = 0; i < ogGameData.Sprites.Count; i++)
     Console.WriteLine($"[{i}] Exporting {moddedGameData.Sprites[i].Name.Content}...");
     Scripts.DumpSprite(moddedGameData.Sprites[i]);
 }
-texturesProgressBar.Total = 1;
-texturesProgressBar.UpdateProgress(1);
+texturesProgressBar.Total = 0;
+texturesProgressBar.UpdateProgress(0);
 for (int i = ogGameData.Sprites.Count; i < moddedGameData.Sprites.Count; i++)
 {
     Console.WriteLine($"[{i}] Exporting {moddedGameData.Sprites[i].Name.Content}...");
