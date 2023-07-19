@@ -1,28 +1,46 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
 name: .NET
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+ #push:
+ #  branches: [ master ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  publish_cli:
 
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macOS-latest, windows-latest]
+        configuration: [Debug]
+        bundled: [true, false]
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macOS-latest
+            rid: osx-x64
+          - os: windows-latest
+            rid: win-x64
+
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 6.0.x
     - name: Restore dependencies
       run: dotnet restore ProofOfConcept
     - name: Build
       run: dotnet build ProofOfConcept --no-restore
-    - name: Test
-      run: dotnet test ProofOfConcept --no-build --verbosity normal
+    - name: Publish ${{ matrix.os }} CLI
+      run: dotnet publish ProofOfConcept -c ${{ matrix.configuration }} -r ${{ matrix.rid }} --self-contained ${{ matrix.bundled }} -p:PublishSingleFile=false --output CLI-${{ matrix.os }}
+    - name: Copy external files
+      run: |
+        cp ./README.md ./CLI-${{ matrix.os }}/
+    - name: Upload ${{ matrix.os }} CLI
+      uses: actions/upload-artifact@v2
+      with:
+        name: CLI-${{ matrix.os }}-isBundled-${{ matrix.bundled }}
+        path: CLI-${{ matrix.os }}
