@@ -30,4 +30,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: MOD-WINDOWS${{ matrix.os }}-isBundled-${{ matrix.bundled }}
-        path: /home/runner/work/GML-Mod-Loader/GML-Mod-Loader/ModPackager/bin/Debug/net7.0/
+        path: D:\a\GML-Mod-Loader\GML-Mod-Loader\ModPackager\bin\Debug\net7.0\
