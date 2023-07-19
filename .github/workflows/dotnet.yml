@@ -26,3 +26,8 @@ jobs:
       run: dotnet build ModPackager --no-restore
     - name: Test
       run: dotnet test ModPackager --no-build --verbosity normal
+    - name: IDK
+      uses: actions/upload-artifact@v2
+      with:
+        name: MOD-${{ matrix.os }}-isBundled-${{ matrix.bundled }}
+        path: MOD-${{ matrix.os }}
