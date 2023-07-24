@@ -3,7 +3,6 @@ using System.Linq;
 using UndertaleModLib;
 using UndertaleModLib.Models;
 using UndertaleModLib.Decompiler;
-using UndertaleModLib.Compiler;
 using UndertaleModLib.Util;
 #endregion
 
@@ -33,7 +32,7 @@ Console.WriteLine();
 #region Code
 Console.WriteLine("Exporting code...");
 var codeProgressBar = new ProgressBar(moddedGameData.Code.Count-1);
-for (int i = 0; i < moddedGameData.Code.Count; i++)
+for (int i = 0; i < ogGameData.Code.Count; i++)
 {
   if (i >= 0 && i < moddedGameData.Code.Count)
   {
@@ -270,7 +269,6 @@ for (int i = ogGameData.Fonts.Count; i < moddedGameData.Fonts.Count; ++i)
 }
 Console.WriteLine();
 #endregion
-
 Console.WriteLine("Done!");
 Console.ReadKey();
 #endregion
