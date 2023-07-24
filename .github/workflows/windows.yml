@@ -31,14 +31,3 @@ jobs:
       with:
         name: MOD-WINDOWS${{ matrix.os }}-isBundled-${{ matrix.bundled }}
         path: D:\a\GML-Mod-Loader\GML-Mod-Loader\ModPackager\bin\Debug\net7.0\
-    - name: ProofOfConcept
-      run: dotnet restore ProofOfConcept
-    - name: Building ProofOfConcept
-      run: dotnet build ProofOfConcept --no-restore
-    - name: testing ProofOfConcept
-      run: dotnet test ProofOfConcept --no-build --verbosity normal
-    - name: uploading it to artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: COM-WINDOWS${{ matrix.os }}-isBundled-${{ matrix.bundled }}
-        path: D:\a\GML-Mod-Loader\GML-Mod-Loader\ProofOfConcept\bin\Debug\net7.0\
