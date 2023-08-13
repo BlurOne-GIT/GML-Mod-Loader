@@ -3,7 +3,6 @@ using System.Linq;
 using UndertaleModLib;
 using UndertaleModLib.Models;
 using UndertaleModLib.Decompiler;
-using UndertaleModLib.Compiler;
 using UndertaleModLib.Util;
 #endregion
 
