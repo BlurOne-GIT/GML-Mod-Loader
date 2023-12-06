@@ -1,5 +1,4 @@
-﻿#region Using Directives
-using System.Linq;
+#region Using Directives
 using UndertaleModLib;
 using UndertaleModLib.Models;
 using UndertaleModLib.Decompiler;
@@ -7,9 +6,10 @@ using UndertaleModLib.Util;
 #endregion
 
 #region Fields
-string ogGameDataPath = args[0];
-string moddedGameDataPath = args[1];
-string exportPath = args[2]; // .gmmod folder
+string ogGameDataPath = "og.win";
+string moddedGameDataPath = "modded.win";
+string exportPath = "/export"; // .gmmod folder
+int numberOfErrors = 0;
 Scripts.ExportFolder = exportPath;
 
 UndertaleData ogGameData;
@@ -40,7 +40,14 @@ for (int i = 0; i < ogGameData.Code.Count; i++)
 
     string ogAsm = (ogGameData.Code[i] != null ? ogGameData.Code[i].Disassemble(ogGameData.Variables, ogGameData.CodeLocals.For(ogGameData.Code[i])) : "");
     string moddedAsm = (moddedGameData.Code[i] != null ? moddedGameData.Code[i].Disassemble(moddedGameData.Variables, moddedGameData.CodeLocals.For(moddedGameData.Code[i])) : "");
-    
+
+    if (ogAsm == null || moddedAsm == null)
+    {
+        Console.WriteLine($"[{i}] Skipping Code export due to null reference.");
+        numberOfErrors++;
+        continue;
+    }
+
     if (ogAsm == moddedAsm)
         continue;
 
@@ -75,6 +82,14 @@ for (int i = 0; i < ogGameData.Sprites.Count; i++)
             texturesProgressBar.UpdateProgress(j);
             var ogTexture = ogGameData.Sprites[i].Textures[j].Texture;
             var moddedTexture = moddedGameData.Sprites[i].Textures[j].Texture;
+
+            if (ogTexture == null || moddedTexture == null)
+            {
+                Console.WriteLine($"[{i}] Skipping Sprite export due to null reference.");
+                numberOfErrors++;
+                continue;
+            }
+
             string moddedTexturePageName = moddedTexture.TexturePage.Name.Content;
 
             if (ogTexture.TexturePage.Name.Content != moddedTexturePageName)
@@ -120,6 +135,14 @@ for (int i = 0; i < ogGameData.Fonts.Count; i++)
 
     var ogTexture = ogGameData.Fonts[i].Texture;
     var moddedTexture = moddedGameData.Fonts[i].Texture;
+
+    if (ogTexture == null || moddedTexture == null)
+    {
+        Console.WriteLine($"[{i}] Skipping Fonts export due to null reference.");
+        numberOfErrors++;
+        continue;
+    }
+
     string moddedTexturePageName = moddedTexture.TexturePage.Name.Content;
 
     if (ogTexture.TexturePage.Name.Content == moddedTexturePageName)
@@ -155,6 +178,14 @@ for (int i = 0; i < ogGameData.Backgrounds.Count; i++)
 
     var ogTexture = ogGameData.Backgrounds[i].Texture;
     var moddedTexture = moddedGameData.Backgrounds[i].Texture;
+
+    if (ogTexture == null || moddedTexture == null)
+    {
+        Console.WriteLine($"[{i}] Skipping background export due to null reference.");
+        numberOfErrors++;
+        continue;
+    }
+
     string moddedTexturePageName = moddedTexture.TexturePage.Name.Content;
 
     if (ogTexture.TexturePage.Name.Content == moddedTexturePageName)
@@ -210,6 +241,13 @@ for (int i = 0; i < ogGameData.Fonts.Count; ++i)
     var ogFont = ogGameData.Fonts[i];
     var moddedFont = moddedGameData.Fonts[i];
 
+    if (ogFont == null || moddedFont == null)
+    {
+        Console.WriteLine($"[{i}] Skipping FontData export due to null reference.");
+        numberOfErrors++;
+        continue;
+    }
+
     if (ogFont.DisplayName.Content == moddedFont.DisplayName.Content && Scripts.PropertiesEqual<UndertaleFont>(ogFont, moddedFont, properties) && ogFont.Glyphs.Count == moddedFont.Glyphs.Count)
     {
         bool export = false;
@@ -238,5 +276,9 @@ Console.WriteLine();
 #endregion
 
 Console.WriteLine("Done!");
+if (numberOfErrors > 1)
+{
+    Console.WriteLine($"There's a total of {numberOfErrors} errors during exporting");
+}
 Console.ReadKey();
 #endregion
