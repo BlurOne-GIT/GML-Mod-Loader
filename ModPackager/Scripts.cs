@@ -8,7 +8,7 @@ using System.Drawing.Imaging;
 
 public static class Scripts
 {
-    public static UndertaleData Data { get; set; }
+    public static UndertaleData Data { get; set; } = new UndertaleData();
     public static string ExportFolder { get; set; } = @"./mod.gmmod";
     private static string CodeFolder { get => Path.Combine(ExportFolder, "Code"); }
     private static string TextureFolder { get => Path.Combine(ExportFolder, "Textures"); }
