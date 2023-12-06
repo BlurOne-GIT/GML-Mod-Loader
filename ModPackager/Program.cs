@@ -8,7 +8,7 @@ using UndertaleModLib.Util;
 #region Fields
 string ogGameDataPath = args[0];
 string moddedGameDataPath = args[1];
-string exportPath = args[3]; // .gmmod folder
+string exportPath = args[2]; // .gmmod folder
 int numberOfErrors = 0;
 Scripts.ExportFolder = exportPath;
 
