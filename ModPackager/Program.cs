@@ -20,10 +20,10 @@ UndertaleData moddedGameData;
 #region Init
 Console.CursorVisible = false;
 Console.WriteLine("Reading original game data...");
-using (FileStream stream = new FileStream(ogGameDataPath, FileMode.Open))
+using (FileStream stream = new(ogGameDataPath, FileMode.Open))
     ogGameData = UndertaleIO.Read(stream);
 Console.WriteLine("Reading modded game data...");
-using (FileStream stream = new FileStream(moddedGameDataPath, FileMode.Open))
+using (FileStream stream = new(moddedGameDataPath, FileMode.Open))
     moddedGameData = UndertaleIO.Read(stream);
 Scripts.Data = moddedGameData;
 Console.WriteLine();
@@ -43,7 +43,7 @@ for (int i = 0; i < ogGameData.Code.Count; i++)
 
     if (ogAsm == null || moddedAsm == null)
     {
-        Console.WriteLine($"Skipping {ogGameData.Code[1]} Code export due to null reference.");
+        Console.WriteLine($"[{i}] Skipping {ogGameData.Code[i]} Code export due to null reference.");
         numberOfErrors++;
         continue;
     }
@@ -85,7 +85,7 @@ for (int i = 0; i < ogGameData.Sprites.Count; i++)
 
             if (ogTexture == null || moddedTexture == null)
             {
-                Console.WriteLine($"Skipping {ogGameData.Sprites[1]} Sprite export due to null reference.");
+                Console.WriteLine($"[{i}] Skipping {ogGameData.Sprites[i]} Sprite export due to null reference.");
                 numberOfErrors++;
                 continue;
             }
@@ -138,7 +138,7 @@ for (int i = 0; i < ogGameData.Fonts.Count; i++)
 
     if (ogTexture == null || moddedTexture == null)
     {
-        Console.WriteLine($"Skipping {ogGameData.Fonts[1]} Fonts export due to null reference.");
+        Console.WriteLine($"[{i}] Skipping {ogGameData.Fonts[i]} Fonts export due to null reference.");
         numberOfErrors++;
         continue;
     }
@@ -181,7 +181,7 @@ for (int i = 0; i < ogGameData.Backgrounds.Count; i++)
 
     if (ogTexture == null || moddedTexture == null)
     {
-        Console.WriteLine($"Skipping {ogGameData.Backgrounds[1]} Background Texture export due to null reference.");
+        Console.WriteLine($"[{i}] Skipping {ogGameData.Backgrounds[i]} Background Texture export due to null reference.");
         numberOfErrors++;
         continue;
     }
@@ -243,7 +243,7 @@ for (int i = 0; i < ogGameData.Fonts.Count; ++i)
 
     if (ogFont == null || moddedFont == null)
     {
-        Console.WriteLine($"Skipping {ogGameData.Fonts[1]} FontData export due to null reference.");
+        Console.WriteLine($"[{i}] Skipping {ogGameData.Fonts[i]} FontData export due to null reference.");
         numberOfErrors++;
         continue;
     }
